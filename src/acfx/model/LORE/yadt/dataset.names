@@ -1,0 +1,9 @@
+parents;integer;continuous
+has_nurs;integer;continuous
+form;integer;continuous
+children;integer;continuous
+housing;integer;continuous
+finance;integer;continuous
+social;integer;continuous
+health;integer;continuous
+class;integer;class
