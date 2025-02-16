@@ -4,7 +4,7 @@ The repository is a software implementation and set of additional utility tools 
 
 First install all python packages
 ``` bash
-conda create --name ccfenv --python 3.11
+conda create --name ccfenv python=3.11
 conda activate ccfenv
 conda install pip
 pip install -r requirements.txt
