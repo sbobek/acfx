@@ -1,4 +1,4 @@
-from random import random
+import random
 import numpy as np
 import optuna
 import pandas as pd
@@ -91,20 +91,11 @@ def generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_o
     if init_points > 0:
         try:
             print(f'EBM random samples... Already sampled {sample_size} from {Xdesired.shape[0]} possible...')
-            ebcf = EBMCounterOptimizer(model, pd.DataFrame(query_instance.reshape(1, -1), columns=features_order))
+            optimizer = get_ebm_optimizer(model, pd.DataFrame(query_instance.reshape(1, -1), columns=features_order))
             total_lists = []
             for i in range(min(init_points, 2 ** len(masked_features))):
-                num_elements = random.randint(1, len(masked_features))
-                selected_features = random.sample(masked_features, num_elements)
-                set_to_check = set(selected_features)
-                # Check if the set is in the list of sets
-                found = any(set(item) == set_to_check for item in total_lists)
-                if found:
-                    continue
-                total_lists.append(selected_features)
-                try:
-                    _, cf = ebcf.optimize_proba(desired_class, feature_masked=selected_features)
-                except:
+                cf = optimizer_iteration(masked_features, total_lists, optimizer, desired_class)
+                if cf is not None:
                     continue
 
                 # check if values of cf are aligned with the ranges, and if not, clip it to the range
@@ -134,6 +125,26 @@ def generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_o
                          for i, key in enumerate(features_order)]]).reshape(1, -1)
 
     return best_cf
+
+
+def optimizer_iteration(masked_features, total_lists:list, optimizer, desired_class):
+    num_elements = random.randint(1, len(masked_features))
+    selected_features = random.sample(masked_features, num_elements)
+    set_to_check = set(selected_features)
+    # Check if the set is in the list of sets
+    found = any(set(item) == set_to_check for item in total_lists)
+    if found:
+        return None
+    total_lists.append(selected_features)
+    try:
+        _, cf = optimizer.optimize_proba(desired_class, feature_masked=selected_features)
+        return cf
+    except:
+        return None
+
+
+def get_ebm_optimizer(model, query_instance:pd.DataFrame):
+    return EBMCounterOptimizer(model, query_instance)
 
 
 def generate_cfs(query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight,
