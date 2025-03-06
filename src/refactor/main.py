@@ -13,12 +13,12 @@ from src.acfx.data import OpenmlData
 from src.acfx.data.consts import RANDOM_STATE, TIME_LIMIT, MODEL_TIME_LIMIT
 from src.refactor.benchmark.ExplainersRegistry import ExplainersRegistry
 from src.refactor.tools.CCStats import CCStats
-
+from tensorflow.python.keras import backend as keras_backend
 
 def set_session():
     tf.compat.v1.disable_eager_execution()
     sess = tf.compat.v1.Session()
-    tf.compat.v1.keras.backend.set_session(sess)
+    keras_backend.set_session(sess)
 
 def set_model_path():
     sys.path.append('./acfx/model/LORE')
