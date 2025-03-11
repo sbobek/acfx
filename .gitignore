@@ -245,3 +245,5 @@ fabric.properties
 src/refactor/progress.txt
 /.idea
 /.vs
+/src/cache
+src/progress.txt

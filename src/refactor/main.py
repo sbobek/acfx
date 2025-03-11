@@ -79,7 +79,10 @@ def evaluate(use_suite:bool, time_limit:int, model_time_limit:int):
             except TimeoutError:
                 print('Timeout, aborting, moving to another dataset...')
                 continue
-
+            # todo
+            #  tu sie dzieje cos dziwnego i z tego potem sa problemy - model_clf.classes_
+            #  daje tablice ktora nie sklada sie z kolejnych liczb [0,2,3,4] i przez to
+            #  potem przykladowo uderzamy z 1 i jest wyjatek
             explainers_registry = ExplainersRegistry(model_clf, causal_model, ds, NUM_CFS, stats, time_limit,
                                                      init_points=init_points, n_iter=n_iter)
             print('Calculating counterfactuals...')

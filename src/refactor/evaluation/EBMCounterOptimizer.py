@@ -26,7 +26,10 @@ class EBMCounterOptimizer:
                 class_term_scores = self.ebm.term_scores_[term_idx] if class_idx == 1 else 1 - self.ebm.term_scores_[
                     term_idx]
             class_max = np.max(class_term_scores)
-            feature_score_idx = np.where(class_term_scores[1:-1] == class_max)[0][0]  ##this is score, not value imho
+            try:
+                feature_score_idx = np.where(class_term_scores[1:-1] == class_max)[0][0]  ##this is score, not value imho
+            except:
+                print(np.where(class_term_scores[1:-1] == class_max))
             # we bin differently for main effects and pairs, so first
             # get the list containing the bins for different resolutions
             bin_levels = self.ebm.bins_[feature_idx]
