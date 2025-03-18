@@ -14,7 +14,7 @@ import signal
 # from src.acfx.model import Dice
 # from src.acfx.model.LORE import lore
 # from src.acfx.model.LORE.neighbor_generator import genetic_neighborhood
-from src.refactor.evaluation.bayesian_optimization import run_ccf
+from src.refactor.model.bayesian_optimization import run_ccf
 from src.refactor.evaluation.EBMCounterOptimizer import EBMCounterOptimizer
 
 
