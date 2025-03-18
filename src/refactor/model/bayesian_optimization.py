@@ -138,7 +138,7 @@ def optimizer_iteration(masked_features, total_lists:list, optimizer, desired_cl
         _, cf = optimizer.optimize_proba(desired_class, feature_masked=selected_features)
         return cf
     except Exception as ex:
-        log2file(ex)
+        log2file(f'optimize_proba error occured: {ex}')
         return None
 
 
