@@ -5,6 +5,7 @@ import pandas as pd
 
 from src.refactor.evaluation.casual_counterfactuals import compute_loss
 from src.refactor.evaluation.EBMCounterOptimizer import EBMCounterOptimizer
+from src.refactor.evaluation.multi_dataset_evaluation import log2file
 
 
 def generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight, sparsity_weight,
@@ -89,7 +90,6 @@ def generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_o
         init_points = max(0, init_points - sampled_trials)
 
     if init_points > 0:
-        #try:
         print(f'EBM random samples... Already sampled {sample_size} from {Xdesired.shape[0]} possible...')
         optimizer = get_ebm_optimizer(model, pd.DataFrame(query_instance.reshape(1, -1), columns=features_order))
         total_lists = []
@@ -106,13 +106,11 @@ def generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_o
             elif isinstance(cf, np.ndarray) or isinstance(cf, list):
                 cf_dict = {key: cf[i] for i, key in enumerate(features_order)}
             else:
-                raise ValueError("Unexpected format for cf returned by optimize_proba.")
+                raise ValueError("Unexpected format for cf")
 
             if is_unique_point(cf_dict):
                 sampled_trials += 1
                 study.enqueue_trial(cf_dict)
-        # except Exception as ex:
-        #     print('Resampling failed...')
 
     # Optimize the study with the defined number of iterations
     study.optimize(black_box_function, n_trials=n_iter + sampled_trials)
@@ -139,7 +137,8 @@ def optimizer_iteration(masked_features, total_lists:list, optimizer, desired_cl
     try:
         _, cf = optimizer.optimize_proba(desired_class, feature_masked=selected_features)
         return cf
-    except:
+    except Exception as ex:
+        log2file(ex)
         return None
 
 
