@@ -9,7 +9,7 @@ import tensorflow as tf
 import pandas as pd
 import numpy as np
 import signal
-
+from tensorflow.python.keras import backend as keras_backend
 
 # from src.acfx.model import Dice
 # from src.acfx.model.LORE import lore
@@ -260,7 +260,7 @@ class ExplainersRegistry:
         self.explain_instance = explain_instance
         self.cfgen_methods_no = 0
         self.cfgen_time_agg = 0
-        tf.keras.backend.clear_session()
+        keras_backend.clear_session()
         for method_name, method_func in self.recipes.items():
             print(f'Running {method_name}...')
             try:
@@ -284,4 +284,3 @@ class ExplainersRegistry:
                 self.stats.append_stats(method_name, None, self.ds, self.explain_instance, self.model_clf,
                                         self.causal_model, int(self.desired_class), self.pbounds, np.nan)
             signal.alarm(0)
-
