@@ -96,4 +96,13 @@ class CCStats:
         record.append(np.mean([compute_causal_penalty(ce.reshape(1, -1), casual_model.adjacency_matrix_,
                                                       casual_model.causal_order_, categorical=categorical_indicator)
                                for ce in cfs]))
-        record.append(compute_diversity_loss(cfs))
+
+        cfs_as_np = np.array(cfs)
+        # if cfs empty
+        if not cfs_as_np.any():
+            record.append(0)
+        # 1D distance matrix: det(K) = 1
+        elif len(cfs_as_np.shape) < 2:
+            record.append(1)
+        else:
+            record.append(compute_diversity_loss(cfs))
