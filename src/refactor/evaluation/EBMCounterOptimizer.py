@@ -1,14 +1,18 @@
+import pandas as pd
+from interpret.glassbox import ExplainableBoostingClassifier
 from sklearn.utils.extmath import softmax
 import numpy as np
 
-class EBMCounterOptimizer:
+from src.refactor.abstract.ModelBasedCounterOptimizer import ModelBasedCounterOptimizer
+
+
+class EBMCounterOptimizer(ModelBasedCounterOptimizer):
     Y_TEST = '_eco_y_test'
     Y_PRED = '_eco_y_pred'
     IS_MODIFIABLE = '_eco_is_modifiable'
 
-    def __init__(self, ebm, X):
-        self.ebm = ebm
-        self.X = X
+    def __init__(self, model: ExplainableBoostingClassifier, X: pd.DataFrame):
+        super().__init__(model, X)
         self.updated_features = {}
 
     def _get_optimized_feature_value(self, feature_name, feature_idx, feature_val, features, feature_masked, term_idx,
@@ -20,10 +24,10 @@ class EBMCounterOptimizer:
         """
 
         if feature_name in feature_masked and feature_name not in self.updated_features:
-            if len(self.ebm.term_scores_[term_idx].shape) > 1:
-                class_term_scores = self.ebm.term_scores_[term_idx].T[class_idx]
+            if len(self.model.term_scores_[term_idx].shape) > 1:
+                class_term_scores = self.model.term_scores_[term_idx].T[class_idx]
             else:
-                class_term_scores = self.ebm.term_scores_[term_idx] if class_idx == 1 else 1 - self.ebm.term_scores_[
+                class_term_scores = self.model.term_scores_[term_idx] if class_idx == 1 else 1 - self.model.term_scores_[
                     term_idx]
             class_max = np.max(class_term_scores)
             try:
@@ -32,7 +36,7 @@ class EBMCounterOptimizer:
                 print(np.where(class_term_scores[1:-1] == class_max))
             # we bin differently for main effects and pairs, so first
             # get the list containing the bins for different resolutions
-            bin_levels = self.ebm.bins_[feature_idx]
+            bin_levels = self.model.bins_[feature_idx]
             # print(f'Feature score index for feature {feature_name} is {feature_score_idx} which represents score equal: {class_max} test: {class_term_scores[feature_score_idx+1]}')
             # what resolution do we need for this term (main resolution, pair
             # resolution, etc.), but limit to the last resolution available
@@ -53,12 +57,12 @@ class EBMCounterOptimizer:
                     upper_idx = feature_score_idx
 
                     if lower_idx == -1:
-                        lower = self.ebm.feature_bounds_[feature_idx][0]
+                        lower = self.model.feature_bounds_[feature_idx][0]
                     else:
                         lower = bins[lower_idx]
 
                     if upper_idx == len(bins):
-                        upper = self.ebm.feature_bounds_[feature_idx][1]
+                        upper = self.model.feature_bounds_[feature_idx][1]
                     else:
                         upper = bins[upper_idx]
                     # print(f'Drawing randomly from :{lower} to {upper}')
@@ -87,34 +91,34 @@ class EBMCounterOptimizer:
         target_class: Target class from which we take the features
         featured_masked: List of interchangeable features
         """
-        if target_class not in self.ebm.classes_:
+        if target_class not in self.model.classes_:
             raise KeyError(f'Class "{target_class}" does not exists in given EBM model')
 
-        class_idx = np.where(self.ebm.classes_ == target_class)[0][0]
+        class_idx = np.where(self.model.classes_ == target_class)[0][0]
         self.updated_features = {}
         sample_scores = []
         cf = {}
         for index, sample in self.X.iterrows():
             # start from the intercept for each sample
-            score = self.ebm.intercept_.copy()
+            score = self.model.intercept_.copy()
             if isinstance(score, float) or len(score) == 1:
                 # regression or binary classification
                 score = float(score)
 
             # we have 2 terms, so add their score contributions
-            for term_idx, features in enumerate(self.ebm.term_features_):
+            for term_idx, features in enumerate(self.model.term_features_):
                 # indexing into a tensor requires a multi-dimensional index
                 tensor_index = []
                 # main effects will have 1 feature, and pairs will have 2 features
                 for feature_idx in features:
-                    feature_name = self.ebm.feature_names_in_[feature_idx]  # Get the feature name by index
+                    feature_name = self.model.feature_names_in_[feature_idx]  # Get the feature name by index
                     feature_val = sample[feature_name]  # Use the feature name to get the correct value from the sample
                     bin_idx = 0  # if missing value, use bin index 0
 
                     if feature_val is not None and feature_val is not np.nan:
                         # we bin differently for main effects and pairs, so first
                         # get the list containing the bins for different resolutions
-                        bin_levels = self.ebm.bins_[feature_idx]
+                        bin_levels = self.model.bins_[feature_idx]
 
                         # what resolution do we need for this term (main resolution, pair
                         # resolution, etc.), but limit to the last resolution available
@@ -142,25 +146,25 @@ class EBMCounterOptimizer:
                                 # non-floats are 'unknown', which is in the last bin (-1)
                                 bin_idx = -1
 
-                        if len(self.ebm.term_scores_[term_idx].shape) > 1:
-                            sc = self.ebm.term_scores_[term_idx].T[class_idx][bin_idx]
+                        if len(self.model.term_scores_[term_idx].shape) > 1:
+                            sc = self.model.term_scores_[term_idx].T[class_idx][bin_idx]
                         else:
-                            sc = self.ebm.term_scores_[term_idx][bin_idx]
+                            sc = self.model.term_scores_[term_idx][bin_idx]
                         # print(f'And feature value {feature_val} translates back to bin index: {bin_idx} which represents score: {sc}')
 
                         tensor_index.append(bin_idx)
 
                 # local_score is also the local feature importance
-                local_score = self.ebm.term_scores_[term_idx][tuple(tensor_index)]
+                local_score = self.model.term_scores_[term_idx][tuple(tensor_index)]
 
                 score += local_score
             sample_scores.append(score)
 
         predictions = np.array(sample_scores)
 
-        if hasattr(self.ebm, 'classes_'):
+        if hasattr(self.model, 'classes_'):
             # classification
-            if len(self.ebm.classes_) == 2:
+            if len(self.model.classes_) == 2:
                 # binary classification
 
                 # softmax expects two logits for binary classification
@@ -174,7 +178,7 @@ class EBMCounterOptimizer:
         X = self.X.copy()
         predictions = self.optimize_proba(target_class, feature_masked)
         X.loc[:, self.Y_TEST] = np.argmax(predictions, axis=1)
-        X.loc[:, self.Y_PRED] = X[self.Y_TEST].map({key: val for key, val in enumerate(self.ebm.classes_)})
+        X.loc[:, self.Y_PRED] = X[self.Y_TEST].map({key: val for key, val in enumerate(self.model.classes_)})
         X.loc[:, self.IS_MODIFIABLE] = np.where(X[y_test_key] != X[self.Y_PRED], 1, 0)
 
         return X

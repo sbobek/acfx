@@ -5,7 +5,6 @@ from time import time as tstime
 from alibi.explainers import CounterfactualProto
 from alibi.explainers import CEM
 from alibi.explainers import Counterfactual
-import tensorflow as tf
 import pandas as pd
 import numpy as np
 import signal

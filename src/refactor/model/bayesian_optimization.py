@@ -2,7 +2,11 @@ import random
 import numpy as np
 import optuna
 import pandas as pd
+from interpret.glassbox import ExplainableBoostingClassifier
 
+from src.refactor.abstract.ModelBasedCounterOptimizer import ModelBasedCounterOptimizer
+from src.refactor.abstract.OptimizerType import OptimizerType
+from src.refactor.evaluation.LogisticRegressionCounterOptimizer import LogisticRegressionCounterOptimizer
 from src.refactor.evaluation.casual_counterfactuals import compute_loss
 from src.refactor.evaluation.EBMCounterOptimizer import EBMCounterOptimizer
 from src.refactor.evaluation.multi_dataset_evaluation import log2file
@@ -12,7 +16,7 @@ def generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_o
                        plausibility_weight,
                        diversity_weight, bounds, model,
                        categorical_indicator=None, features_order=None, masked_features=None, cfs=[], X=None,
-                       init_points=5, n_iter=1000):
+                       init_points=5, n_iter=1000, optimizer_type: OptimizerType = OptimizerType.EBM):
     """
     Generate a single counterfactual that minimizes the loss function using Optuna.
     """
@@ -76,6 +80,14 @@ def generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_o
         return {feature: np.clip(value, pbounds[feature][0], pbounds[feature][1])
                 for feature, value in cf.items()}
 
+    def get_optimizer():
+        if optimizer_type == OptimizerType.EBM:
+            return get_ebm_optimizer(model, pd.DataFrame(query_instance.reshape(1, -1), columns=features_order))
+        if optimizer_type == OptimizerType.LogisticRegression:
+            return get_logistic_Regression_optimizer(model, pd.DataFrame(query_instance.reshape(1, -1), columns=features_order))
+        else:
+            raise NotImplementedError()
+
     sampled_trials = 0
     if X is not None:
         Xdesired = X[model.predict(X) == desired_class].drop_duplicates()
@@ -91,7 +103,8 @@ def generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_o
 
     if init_points > 0:
         print(f'EBM random samples... Already sampled {sample_size} from {Xdesired.shape[0]} possible...')
-        optimizer = get_ebm_optimizer(model, pd.DataFrame(query_instance.reshape(1, -1), columns=features_order))
+        # optimizer = get_ebm_optimizer(model, pd.DataFrame(query_instance.reshape(1, -1), columns=features_order))
+        optimizer = get_optimizer()
         total_lists = []
         for i in range(min(init_points, 2 ** len(masked_features))):
             cf = optimizer_iteration(masked_features, total_lists, optimizer, desired_class)
@@ -125,7 +138,7 @@ def generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_o
     return best_cf
 
 
-def optimizer_iteration(masked_features, total_lists:list, optimizer, desired_class):
+def optimizer_iteration(masked_features, total_lists:list, optimizer: ModelBasedCounterOptimizer, desired_class):
     num_elements = random.randint(1, len(masked_features))
     selected_features = random.sample(masked_features, num_elements)
     set_to_check = set(selected_features)
@@ -142,8 +155,12 @@ def optimizer_iteration(masked_features, total_lists:list, optimizer, desired_cl
         return None
 
 
-def get_ebm_optimizer(model, query_instance:pd.DataFrame):
+def get_ebm_optimizer(model:ExplainableBoostingClassifier, query_instance:pd.DataFrame):
     return EBMCounterOptimizer(model, query_instance)
+
+
+def get_logistic_Regression_optimizer(model, query_instance:pd.DataFrame):
+    return LogisticRegressionCounterOptimizer(model, query_instance)
 
 
 def generate_cfs(query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight,
