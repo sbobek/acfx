@@ -84,7 +84,7 @@ def generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_o
         if optimizer_type == OptimizerType.EBM:
             return get_ebm_optimizer(model, pd.DataFrame(query_instance.reshape(1, -1), columns=features_order))
         if optimizer_type == OptimizerType.LogisticRegression:
-            return get_logistic_Regression_optimizer(model, pd.DataFrame(query_instance.reshape(1, -1), columns=features_order))
+            return get_logistic_regression_optimizer(model, pd.DataFrame(query_instance.reshape(1, -1), columns=features_order))
         else:
             raise NotImplementedError()
 
@@ -159,7 +159,7 @@ def get_ebm_optimizer(model:ExplainableBoostingClassifier, query_instance:pd.Dat
     return EBMCounterOptimizer(model, query_instance)
 
 
-def get_logistic_Regression_optimizer(model, query_instance:pd.DataFrame):
+def get_logistic_regression_optimizer(model, query_instance:pd.DataFrame):
     return LogisticRegressionCounterOptimizer(model, query_instance)
 
 
@@ -197,12 +197,12 @@ def generate_cfs(query_instance, desired_class, adjacency_matrix, causal_order, 
 
     return np.vstack(cfs)
 
-def get_feature_pbounds(ebm_model, feature_names, features_masked=None):
-    bonds = dict([[f,(ebm_model.feature_bounds_[i][0],ebm_model.feature_bounds_[i][1])] for i,f in enumerate(feature_names)])
-    if features_masked is None:
-        return bonds
-    else:
-        return dict([[f,bonds[f]] for f in features_masked])
+# def get_feature_pbounds(ebm_model, feature_names, features_masked=None):
+#     bonds = dict([[f,(ebm_model.feature_bounds_[i][0],ebm_model.feature_bounds_[i][1])] for i,f in enumerate(feature_names)])
+#     if features_masked is None:
+#         return bonds
+#     else:
+#         return dict([[f,bonds[f]] for f in features_masked])
 
 
 def run_ccf(explain_instance, model_clf, dataset, desired_class, num_cfs, casual_model, pbounds, as_causal=True, masked_features=None, init_points=500, n_iter=100):

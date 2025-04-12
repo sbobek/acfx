@@ -8,7 +8,9 @@ from sklearn.metrics import accuracy_score
 def timeout_handler(signum, frame):
     raise TimeoutError("Calculation timed out!")
 
-def log2file(output, filepath='progress.txt', clear=False):
+DEFAULT_LOG_PATH = 'progress.txt'
+
+def log2file(output, filepath=DEFAULT_LOG_PATH, clear=False):
     with open(filepath, 'w' if clear else 'a') as f:
         f.write(output)
 
