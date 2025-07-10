@@ -9,3 +9,4 @@ omit =
     */__init__.py
     src/refactor/evaluation/EBMCounterOptimizer.py
     src/refactor/evaluation/LogisticRegressionCounterOptimizer.py
+    src/refactor/tools/*

@@ -4,7 +4,7 @@ from unittest.mock import patch, Mock
 import pytest
 
 from src.refactor.model.ccfs import optimizer_iteration
-from src.refactor.tests.test_generate_cfs import LOGFILEPATH
+from src.refactor.tests.consts import LOGFILEPATH
 
 
 class TestOptimizerIteration:
