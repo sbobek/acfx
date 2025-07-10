@@ -1,80 +1,11 @@
-import os
+from unittest.mock import Mock, patch
 
 import numpy as np
 import pandas as pd
 import pytest
-from unittest.mock import Mock, patch
 
 from src.refactor.abstract.OptimizerType import OptimizerType
-from src.refactor.model.bayesian_optimization import optimizer_iteration, generate_single_cf
-from src.refactor.evaluation.multi_dataset_evaluation import DEFAULT_LOG_PATH
-
-LOGFILEPATH = os.path.join(os.getcwd(), DEFAULT_LOG_PATH)
-
-class TestOptimizerIteration:
-    @pytest.fixture(scope='function')
-    def setup_teardown_logfile(self):
-        try:
-            # setup
-            with open(LOGFILEPATH, 'a'):
-                pass
-        except Exception as e:
-            print(f"Error occurred while trying to create the file: {e}")
-        yield
-        # teardown
-        try:
-            if os.path.isfile(LOGFILEPATH):
-                os.remove(LOGFILEPATH)
-        except Exception as e:
-            print(f"Error occurred while trying to remove the logfile: {e}")
-
-    @patch('random.randint')
-    @patch('random.sample')
-    def test_optimizer_iteration_new_set(self,mock_sample, mock_randint):
-        mock_randint.return_value = 2
-        mock_sample.return_value = ['feature1', 'feature2']
-        masked_features = ['feature1', 'feature2', 'feature3']
-        total_lists = [['feature3']]
-        optimizer = Mock()
-        optimizer.optimize_proba.return_value = (None, 'counterfactual')
-        desired_class = 'desired_class'
-
-        result = optimizer_iteration(masked_features, total_lists, optimizer, desired_class)
-
-        assert result == 'counterfactual'
-        assert ['feature1', 'feature2'] in total_lists
-        optimizer.optimize_proba.assert_called_once_with('desired_class', feature_masked=['feature1', 'feature2'])
-
-    @patch('random.randint')
-    @patch('random.sample')
-    def test_optimizer_iteration_existing_set(self,mock_sample, mock_randint):
-        mock_randint.return_value = 2
-        mock_sample.return_value = ['feature1', 'feature2']
-        masked_features = ['feature1', 'feature2', 'feature3']
-        total_lists = [['feature1', 'feature2']]
-        optimizer = Mock()
-        desired_class = 'desired_class'
-
-        result = optimizer_iteration(masked_features, total_lists, optimizer, desired_class)
-
-        assert result is None
-        assert len(total_lists) == 1
-        optimizer.optimize_proba.assert_not_called()
-
-    @patch('random.randint')
-    @patch('random.sample')
-    def test_optimizer_iteration_exception(self,mock_sample, mock_randint, setup_teardown_logfile):
-        mock_randint.return_value = 2
-        mock_sample.return_value = ['feature1', 'feature2']
-        masked_features = ['feature1', 'feature2', 'feature3']
-        total_lists = [['feature3']]
-        optimizer = Mock()
-        optimizer.optimize_proba.side_effect = Exception('Test exception')
-        desired_class = 'desired_class'
-
-        result = optimizer_iteration(masked_features, total_lists, optimizer, desired_class)
-        assert result is None
-        optimizer.optimize_proba.assert_called_once_with('desired_class', feature_masked=['feature1', 'feature2'])
+from src.refactor.model.ccfs import generate_single_cf
 
 
 class TestGenerateSingleCF:
@@ -111,7 +42,7 @@ class TestGenerateSingleCF:
 
     @patch('optuna.create_study')
     @patch('src.refactor.evaluation.casual_counterfactuals.compute_loss')
-    @patch('src.refactor.model.bayesian_optimization.get_ebm_optimizer')
+    @patch('src.refactor.model.ccfs.get_ebm_optimizer')
     def test_generate_single_cf_valid_input(self,mock_get_ebm_optimizer, mock_compute_loss, mock_create_study, setup_teardown):
         (query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight, sparsity_weight,
          plausibility_weight, diversity_weight, bounds, model, categorical_indicator, features_order,
@@ -132,7 +63,7 @@ class TestGenerateSingleCF:
 
     @patch('optuna.create_study')
     @patch('src.refactor.evaluation.casual_counterfactuals.compute_loss')
-    @patch('src.refactor.model.bayesian_optimization.get_ebm_optimizer')
+    @patch('src.refactor.model.ccfs.get_ebm_optimizer')
     def test_generate_single_cf_invalid_bounds(self,mock_get_ebm_optimizer, mock_compute_loss, mock_create_study, setup_teardown):
         (query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight, sparsity_weight,
          plausibility_weight, diversity_weight, bounds, model, categorical_indicator, features_order,
@@ -147,7 +78,7 @@ class TestGenerateSingleCF:
 
     @patch('optuna.create_study')
     @patch('src.refactor.evaluation.casual_counterfactuals.compute_loss')
-    @patch('src.refactor.model.bayesian_optimization.get_ebm_optimizer')
+    @patch('src.refactor.model.ccfs.get_ebm_optimizer')
     def test_generate_single_cf_invalid_optimizer_type(self,mock_get_ebm_optimizer, mock_compute_loss, mock_create_study, setup_teardown):
         (query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight, sparsity_weight,
          plausibility_weight, diversity_weight, bounds, model, categorical_indicator, features_order,

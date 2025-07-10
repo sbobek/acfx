@@ -197,13 +197,6 @@ def generate_cfs(query_instance, desired_class, adjacency_matrix, causal_order, 
 
     return np.vstack(cfs)
 
-# def get_feature_pbounds(ebm_model, feature_names, features_masked=None):
-#     bonds = dict([[f,(ebm_model.feature_bounds_[i][0],ebm_model.feature_bounds_[i][1])] for i,f in enumerate(feature_names)])
-#     if features_masked is None:
-#         return bonds
-#     else:
-#         return dict([[f,bonds[f]] for f in features_masked])
-
 
 def run_ccf(explain_instance, model_clf, dataset, desired_class, num_cfs, casual_model, pbounds, as_causal=True, masked_features=None, init_points=500, n_iter=100):
     return generate_cfs(explain_instance, desired_class=desired_class, adjacency_matrix=casual_model.adjacency_matrix_, causal_order=casual_model.causal_order_,
