@@ -12,11 +12,11 @@ from src.refactor.evaluation.EBMCounterOptimizer import EBMCounterOptimizer
 from src.refactor.evaluation.multi_dataset_evaluation import log2file
 
 
-def generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight, sparsity_weight,
-                       plausibility_weight,
-                       diversity_weight, bounds, model,
-                       categorical_indicator=None, features_order=None, masked_features=None, cfs=[], X=None,
-                       init_points=5, n_iter=1000, optimizer_type: OptimizerType = OptimizerType.EBM):
+def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight, sparsity_weight,
+                         plausibility_weight,
+                         diversity_weight, bounds, model, optimizer:ModelBasedCounterOptimizer, sampling_from_model:bool,
+                         categorical_indicator=None, features_order=None, masked_features=None, cfs=[], X=None,
+                         init_points=5, n_iter=1000):
     """
     Generate a single counterfactual that minimizes the loss function using Optuna.
     """
@@ -80,17 +80,8 @@ def generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_o
         return {feature: np.clip(value, pbounds[feature][0], pbounds[feature][1])
                 for feature, value in cf.items()}
 
-    def get_optimizer():
-        if optimizer_type == OptimizerType.EBM:
-            return get_ebm_optimizer(model, pd.DataFrame(query_instance.reshape(1, -1), columns=features_order))
-        if optimizer_type == OptimizerType.LogisticRegression:
-            return get_logistic_regression_optimizer(model, pd.DataFrame(query_instance.reshape(1, -1), columns=features_order))
-        else:
-            raise NotImplementedError()
 
-    sampled_trials = 0
-    if X is not None:
-        Xdesired = X[model.predict(X) == desired_class].drop_duplicates()
+    def sample_from_data(Xdesired, features_order, init_points, is_unique_point, sampled_trials, study):
         sample_size = min(int(init_points * 0.5), len(Xdesired))
         Xsample = Xdesired.sample(sample_size)
         for i, r in Xsample.iterrows():
@@ -100,11 +91,29 @@ def generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_o
                 study.enqueue_trial(trial_params)
                 sampled_trials += 1
         init_points = max(0, init_points - sampled_trials)
+        return init_points, sample_size, sampled_trials
 
-    if init_points > 0:
-        print(f'EBM random samples... Already sampled {sample_size} from {Xdesired.shape[0]} possible...')
+    def sample_from_model(Xdesired, bounds, clip_values, desired_class, features_order, init_points,
+                          is_unique_point, masked_features, sample_size, sampled_trials, study):
+        def optimizer_iteration(masked_features, total_lists: list, optimizer: ModelBasedCounterOptimizer,
+                                desired_class):
+            num_elements = random.randint(1, len(masked_features))
+            selected_features = random.sample(masked_features, num_elements)
+            set_to_check = set(selected_features)
+            # Check if the set is in the list of sets
+            found = any(set(item) == set_to_check for item in total_lists)
+            if found:
+                return None
+            total_lists.append(selected_features)
+            try:
+                _, cf = optimizer.optimize_proba(desired_class, feature_masked=selected_features)
+                return cf
+            except Exception as ex:
+                log2file(f'optimize_proba error occured: {ex}')
+                return None
+        print(
+            f'Sampling from model... Already sampled {sample_size} from {Xdesired.shape[0]} possible in data sampling...')
         # optimizer = get_ebm_optimizer(model, pd.DataFrame(query_instance.reshape(1, -1), columns=features_order))
-        optimizer = get_optimizer()
         total_lists = []
         for i in range(min(init_points, 2 ** len(masked_features))):
             cf = optimizer_iteration(masked_features, total_lists, optimizer, desired_class)
@@ -124,6 +133,20 @@ def generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_o
             if is_unique_point(cf_dict):
                 sampled_trials += 1
                 study.enqueue_trial(cf_dict)
+        return sampled_trials
+
+    sampled_trials = 0
+    if X is not None:
+        Xdesired = X[model.predict(X) == desired_class].drop_duplicates()
+        init_points, sample_size, sampled_trials = sample_from_data(X, features_order,
+                                                                              init_points, is_unique_point,
+                                                                              sampled_trials, study)
+        if init_points > 0 and sampling_from_model:
+            sampled_trials = sample_from_model(Xdesired, bounds, clip_values, desired_class, features_order,
+                                               init_points, is_unique_point, masked_features, sample_size, sampled_trials,
+                                               study)
+    else:
+        raise ValueError('X is None')
 
     # Optimize the study with the defined number of iterations
     study.optimize(black_box_function, n_trials=n_iter + sampled_trials)
@@ -137,36 +160,39 @@ def generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_o
 
     return best_cf
 
+def _generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight, sparsity_weight,
+                        plausibility_weight,
+                        diversity_weight, bounds, model,categorical_indicator=None, features_order=None,
+                        masked_features=None, cfs=[], X=None,init_points=5, n_iter=1000,
+                        optimizer_type: OptimizerType = OptimizerType.EBM, optimizer=None, sample_from_model=True):
+    def get_optimizer():
+        def get_ebm_optimizer(model: ExplainableBoostingClassifier, query_instance: pd.DataFrame):
+            return EBMCounterOptimizer(model, query_instance)
+        def get_logistic_regression_optimizer(model, query_instance: pd.DataFrame):
+            return LogisticRegressionCounterOptimizer(model, query_instance)
 
-def optimizer_iteration(masked_features, total_lists:list, optimizer: ModelBasedCounterOptimizer, desired_class):
-    num_elements = random.randint(1, len(masked_features))
-    selected_features = random.sample(masked_features, num_elements)
-    set_to_check = set(selected_features)
-    # Check if the set is in the list of sets
-    found = any(set(item) == set_to_check for item in total_lists)
-    if found:
-        return None
-    total_lists.append(selected_features)
-    try:
-        _, cf = optimizer.optimize_proba(desired_class, feature_masked=selected_features)
-        return cf
-    except Exception as ex:
-        log2file(f'optimize_proba error occured: {ex}')
-        return None
+        if optimizer_type == OptimizerType.EBM:
+            return get_ebm_optimizer(model, pd.DataFrame(query_instance.reshape(1, -1), columns=features_order))
+        if optimizer_type == OptimizerType.LogisticRegression:
+            lro = get_logistic_regression_optimizer(model,
+                                                    pd.DataFrame(query_instance.reshape(1, -1), columns=features_order))
+            lro.set_feature_bounds(bounds)
+            return lro
+        if optimizer_type == OptimizerType.Custom:
+            return optimizer
+        else:
+            raise NotImplementedError()
+    return __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight, sparsity_weight,
+                                plausibility_weight,
+                                diversity_weight, bounds, model, get_optimizer(), categorical_indicator, features_order,
+                                masked_features, cfs, X, init_points, n_iter, sample_from_model)
 
-
-def get_ebm_optimizer(model:ExplainableBoostingClassifier, query_instance:pd.DataFrame):
-    return EBMCounterOptimizer(model, query_instance)
-
-
-def get_logistic_regression_optimizer(model, query_instance:pd.DataFrame):
-    return LogisticRegressionCounterOptimizer(model, query_instance)
 
 
 def generate_cfs(query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight,
                  sparsity_weight, plausibility_weight, diversity_weight, bounds, model, features_order,
                  masked_features=None, categorical_indicator=None, X=None,
-                 num_cfs=1, init_points=10, n_iter=1000):
+                 num_cfs=1, init_points=10, n_iter=1000, sample_from_model=False):
     """
     Generate multiple counterfactuals that minimize the loss function using Bayesian Optimization.
 
@@ -175,41 +201,30 @@ def generate_cfs(query_instance, desired_class, adjacency_matrix, causal_order, 
         desired_class: The target class for the counterfactuals.
         adjacency_matrix: The adjacency matrix representing the causal structure.
         causal_order: The order of variables in the causal graph.
-        proximity_weight, sparsity_weight, plausibility_weight: Weights for different loss components.
+        proximity_weight: Weight for proximity loss component
+        sparsity_weight: Weight for sparsity loss component
+        plausibility_weight: Weight for plausibility loss component
+        diversity_weight: Weight for diversity loss component
         bounds: The bounds for each feature to search over (dict with feature names as keys and tuple (min, max) as values).
         model: The predictive model used to predict class labels.
+        features_order: order of features in query instance (zweryfikowac)
+        masked_features: masked features vector (features to skip)
         categorical_indicator: True at the index where the variable should be treated as categorical
         num_cfs: The number of counterfactual instances to generate.
         init_points: Number of initial points for Bayesian Optimization.
         n_iter: Number of iterations for Bayesian Optimization.
+        X: training dataset to sample from.
 
     Returns:
         The generated counterfactuals that minimize the loss function.
     """
     cfs = []
     for _ in range(num_cfs):
-        cf = generate_single_cf(query_instance, desired_class, adjacency_matrix,
-                                causal_order, proximity_weight, sparsity_weight,
-                                plausibility_weight, diversity_weight,
-                                bounds, model, categorical_indicator, features_order, masked_features=masked_features,
-                                cfs=cfs, X=X, init_points=init_points, n_iter=n_iter)
+        cf = _generate_single_cf(query_instance, desired_class, adjacency_matrix,
+                                 causal_order, proximity_weight, sparsity_weight,
+                                 plausibility_weight, diversity_weight,
+                                 bounds, model, categorical_indicator, features_order, masked_features=masked_features,
+                                 cfs=cfs, X=X, init_points=init_points, n_iter=n_iter)
         cfs.append(cf)
 
     return np.vstack(cfs)
-
-
-def run_ccf(explain_instance, model_clf, dataset, desired_class, num_cfs, casual_model, pbounds, as_causal=True, masked_features=None, init_points=500, n_iter=100):
-    return generate_cfs(explain_instance, desired_class=desired_class, adjacency_matrix=casual_model.adjacency_matrix_, causal_order=casual_model.causal_order_,
-                               proximity_weight=1,
-                               sparsity_weight=1,
-                               categorical_indicator = dataset._categorical_indicator,
-                               plausibility_weight=int(as_causal),
-                               diversity_weight = 1,
-                               bounds=pbounds,
-                               model=model_clf,
-                               features_order = dataset.features,
-                               masked_features = masked_features,
-                               num_cfs=num_cfs,
-                               X=dataset.df_train,
-                               init_points=init_points,
-                               n_iter=n_iter)

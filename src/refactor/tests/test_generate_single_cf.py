@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from src.refactor.abstract.OptimizerType import OptimizerType
-from src.refactor.model.ccfs import generate_single_cf
+from src.refactor.model.ccfs import _generate_single_cf
 
 
 class TestGenerateSingleCF:
@@ -53,10 +53,10 @@ class TestGenerateSingleCF:
         mock_study.best_params = {'feature1': 0.5, 'feature2': 1.5, 'feature3': 2.5}
         mock_compute_loss.return_value = np.array([[0, -1]])
 
-        best_cf = generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight,
-                                     sparsity_weight, plausibility_weight, diversity_weight, bounds, model,
-                                     categorical_indicator, features_order, masked_features, cfs, X, init_points,
-                                     n_iter, optimizer_type)
+        best_cf = _generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight,
+                                      sparsity_weight, plausibility_weight, diversity_weight, bounds, model,
+                                      categorical_indicator, features_order, masked_features, cfs, X, init_points,
+                                      n_iter, optimizer_type)
 
         expected_cf = np.array([[0.5, 1.5, 2.5]])
         assert np.array_equal(best_cf, expected_cf)
@@ -71,10 +71,10 @@ class TestGenerateSingleCF:
 
         bounds = {'feature1': (0, 1), 'feature2': (1, 2), 'feature4': (2, 3)}  # Invalid feature in bounds
         with pytest.raises(KeyError):
-            generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight,
-                               sparsity_weight, plausibility_weight, diversity_weight, bounds, model,
-                               categorical_indicator, features_order, masked_features, cfs, X, init_points,
-                               n_iter, optimizer_type)
+            _generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight,
+                                sparsity_weight, plausibility_weight, diversity_weight, bounds, model,
+                                categorical_indicator, features_order, masked_features, cfs, X, init_points,
+                                n_iter, optimizer_type)
 
     @patch('optuna.create_study')
     @patch('src.refactor.evaluation.casual_counterfactuals.compute_loss')
@@ -86,7 +86,7 @@ class TestGenerateSingleCF:
 
         optimizer_type = None
         with pytest.raises(NotImplementedError):
-            generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight,
-                               sparsity_weight, plausibility_weight, diversity_weight, bounds, model,
-                               categorical_indicator, features_order, masked_features, cfs, X, init_points,
-                               n_iter, optimizer_type)
+            _generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight,
+                                sparsity_weight, plausibility_weight, diversity_weight, bounds, model,
+                                categorical_indicator, features_order, masked_features, cfs, X, init_points,
+                                n_iter, optimizer_type)
