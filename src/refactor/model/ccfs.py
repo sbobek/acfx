@@ -3,6 +3,7 @@ import numpy as np
 import optuna
 import pandas as pd
 from interpret.glassbox import ExplainableBoostingClassifier
+from sklearn.base import ClassifierMixin
 
 from src.refactor.abstract.ModelBasedCounterOptimizer import ModelBasedCounterOptimizer
 from src.refactor.abstract.OptimizerType import OptimizerType
@@ -10,7 +11,6 @@ from src.refactor.evaluation.LogisticRegressionCounterOptimizer import LogisticR
 from src.refactor.evaluation.casual_counterfactuals import compute_loss
 from src.refactor.evaluation.EBMCounterOptimizer import EBMCounterOptimizer
 from src.refactor.evaluation.multi_dataset_evaluation import log2file
-
 
 def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight, sparsity_weight,
                          plausibility_weight,
@@ -81,7 +81,7 @@ def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal
                 for feature, value in cf.items()}
 
 
-    def sample_from_data(Xdesired, features_order, init_points, is_unique_point, sampled_trials, study):
+    def sample_from_data(Xdesired, features_order, init_points, sampled_trials, study):
         sample_size = min(int(init_points * 0.5), len(Xdesired))
         Xsample = Xdesired.sample(sample_size)
         for i, r in Xsample.iterrows():
@@ -93,8 +93,8 @@ def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal
         init_points = max(0, init_points - sampled_trials)
         return init_points, sample_size, sampled_trials
 
-    def sample_from_model(Xdesired, bounds, clip_values, desired_class, features_order, init_points,
-                          is_unique_point, masked_features, sample_size, sampled_trials, study):
+    def sample_from_model(Xdesired, bounds, desired_class, features_order, init_points,
+                          masked_features, sample_size, sampled_trials, study):
         def optimizer_iteration(masked_features, total_lists: list, optimizer: ModelBasedCounterOptimizer,
                                 desired_class):
             num_elements = random.randint(1, len(masked_features))
@@ -139,11 +139,11 @@ def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal
     if X is not None:
         Xdesired = X[model.predict(X) == desired_class].drop_duplicates()
         init_points, sample_size, sampled_trials = sample_from_data(X, features_order,
-                                                                              init_points, is_unique_point,
+                                                                              init_points,
                                                                               sampled_trials, study)
         if init_points > 0 and sampling_from_model:
-            sampled_trials = sample_from_model(Xdesired, bounds, clip_values, desired_class, features_order,
-                                               init_points, is_unique_point, masked_features, sample_size, sampled_trials,
+            sampled_trials = sample_from_model(Xdesired, bounds, desired_class, features_order,
+                                               init_points, masked_features, sample_size, sampled_trials,
                                                study)
     else:
         raise ValueError('X is None')
@@ -162,37 +162,39 @@ def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal
 
 def _generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight, sparsity_weight,
                         plausibility_weight,
-                        diversity_weight, bounds, model,categorical_indicator=None, features_order=None,
-                        masked_features=None, cfs=[], X=None,init_points=5, n_iter=1000,
-                        optimizer_type: OptimizerType = OptimizerType.EBM, optimizer=None, sample_from_model=True):
+                        diversity_weight, bounds, model, categorical_indicator=None, features_order=None,
+                        masked_features=None, cfs=[], X=None, init_points=5, n_iter=1000,
+                        optimizer_type: OptimizerType = OptimizerType.EBM, optimizer=None, sampling_from_model=True):
     def get_optimizer():
-        def get_ebm_optimizer(model: ExplainableBoostingClassifier, query_instance: pd.DataFrame):
-            return EBMCounterOptimizer(model, query_instance)
-        def get_logistic_regression_optimizer(model, query_instance: pd.DataFrame):
-            return LogisticRegressionCounterOptimizer(model, query_instance)
+        def get_ebm_optimizer(model_classifier: ExplainableBoostingClassifier, query_instance: pd.DataFrame):
+            return EBMCounterOptimizer(model_classifier, query_instance)
+        def get_logistic_regression_optimizer(model_classifier: ClassifierMixin, query_instance: pd.DataFrame):
+            return LogisticRegressionCounterOptimizer(model_classifier, query_instance, bounds)
 
         if optimizer_type == OptimizerType.EBM:
             return get_ebm_optimizer(model, pd.DataFrame(query_instance.reshape(1, -1), columns=features_order))
         if optimizer_type == OptimizerType.LogisticRegression:
             lro = get_logistic_regression_optimizer(model,
                                                     pd.DataFrame(query_instance.reshape(1, -1), columns=features_order))
-            lro.set_feature_bounds(bounds)
             return lro
         if optimizer_type == OptimizerType.Custom:
             return optimizer
         else:
             raise NotImplementedError()
-    return __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight, sparsity_weight,
-                                plausibility_weight,
-                                diversity_weight, bounds, model, get_optimizer(), categorical_indicator, features_order,
-                                masked_features, cfs, X, init_points, n_iter, sample_from_model)
+    return __generate_single_cf(query_instance=query_instance, desired_class=desired_class, adjacency_matrix=adjacency_matrix,
+                                causal_order=causal_order, proximity_weight=proximity_weight, sparsity_weight=sparsity_weight,
+                                plausibility_weight=plausibility_weight, diversity_weight=diversity_weight, bounds=bounds,
+                                model=model, optimizer=get_optimizer(), sampling_from_model= sampling_from_model,
+                                categorical_indicator=categorical_indicator, features_order= features_order,
+                                masked_features=masked_features, cfs=cfs, X= X, init_points= init_points, n_iter=n_iter)
 
 
 
-def generate_cfs(query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight,
-                 sparsity_weight, plausibility_weight, diversity_weight, bounds, model, features_order,
+def generate_cfs(query_instance, desired_class, adjacency_matrix, casual_order, proximity_weight,
+                 sparsity_weight, plausibility_weight, diversity_weight, bounds, model, features_order=None,
                  masked_features=None, categorical_indicator=None, X=None,
-                 num_cfs=1, init_points=10, n_iter=1000, sample_from_model=False):
+                 num_cfs=1, init_points=10, n_iter=1000, sampling_from_model=False,
+                 optimizer_type=OptimizerType.EBM, optimizer=None):
     """
     Generate multiple counterfactuals that minimize the loss function using Bayesian Optimization.
 
@@ -200,7 +202,7 @@ def generate_cfs(query_instance, desired_class, adjacency_matrix, causal_order, 
         query_instance: The instance to generate counterfactuals for.
         desired_class: The target class for the counterfactuals.
         adjacency_matrix: The adjacency matrix representing the causal structure.
-        causal_order: The order of variables in the causal graph.
+        casual_order: The order of variables in the causal graph.
         proximity_weight: Weight for proximity loss component
         sparsity_weight: Weight for sparsity loss component
         plausibility_weight: Weight for plausibility loss component
@@ -221,10 +223,11 @@ def generate_cfs(query_instance, desired_class, adjacency_matrix, causal_order, 
     cfs = []
     for _ in range(num_cfs):
         cf = _generate_single_cf(query_instance, desired_class, adjacency_matrix,
-                                 causal_order, proximity_weight, sparsity_weight,
+                                 casual_order, proximity_weight, sparsity_weight,
                                  plausibility_weight, diversity_weight,
                                  bounds, model, categorical_indicator, features_order, masked_features=masked_features,
-                                 cfs=cfs, X=X, init_points=init_points, n_iter=n_iter)
+                                 cfs=cfs, X=X, init_points=init_points, n_iter=n_iter,
+                                 sampling_from_model=sampling_from_model, optimizer_type=optimizer_type, optimizer=optimizer)
         cfs.append(cf)
 
     return np.vstack(cfs)

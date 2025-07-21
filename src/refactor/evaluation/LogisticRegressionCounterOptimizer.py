@@ -1,24 +1,25 @@
+from collections.abc import Iterable
+
 import pandas as pd
 import numpy as np
+from sklearn.base import ClassifierMixin
 from src.refactor.abstract.ModelBasedCounterOptimizer import ModelBasedCounterOptimizer
 
 class LogisticRegressionCounterOptimizer(ModelBasedCounterOptimizer):
-    def __init__(self, model, X: pd.DataFrame, feature_bounds:dict=None):
-        super().__init__(model, X)
+    def __init__(self, model:ClassifierMixin, X: pd.DataFrame, feature_bounds:dict):
+        if not hasattr(model, 'coef_'):
+            raise AttributeError('optimizer requires model.coef_ to be set')
+        if not isinstance(getattr(model, 'coef_', None), Iterable):
+            raise AttributeError('coef_ must be an iterable')
         if feature_bounds is None:
-            feature_bounds = dict()
+            raise ValueError("feature_bounds cannot be None")
+        if not isinstance(getattr(feature_bounds, 'coef_', None), Iterable):
+            raise AttributeError('feature_bounds must be an iterable')
+
+        super().__init__(model, X)
         self.__feature_bounds = feature_bounds
         self.model = model
         self.X = X
-
-    def set_feature_bounds(self, feature_bounds:dict):
-        """
-        Sets feature bounds field for optimization
-
-        Parameters:
-            feature_bounds: A dictionary mapping feature indices to (min, max) bounds.
-        """
-        self.__feature_bounds = feature_bounds
 
     def optimize_proba(self, target_class, feature_masked):
         """
