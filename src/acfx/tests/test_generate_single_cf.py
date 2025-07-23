@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.refactor.abstract.OptimizerType import OptimizerType
-from src.refactor.model.ccfs import _generate_single_cf
+from src.acfx.abstract.OptimizerType import OptimizerType
+from src.acfx.evaluation.ccfs import _generate_single_cf
 
 
 class TestGenerateSingleCF:

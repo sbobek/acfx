@@ -7,10 +7,10 @@ import warnings
 import signal
 import openml
 import traceback
-from src.refactor.evaluation.multi_dataset_evaluation import load_or_dump_cached_file, train_ebm_model, log2file, train_causal_model, \
+from src.acfx.evaluation.multi_dataset_evaluation import load_or_dump_cached_file, train_ebm_model, log2file, train_causal_model, \
     timeout_handler
-from src.acfx.data import OpenmlData
-from src.acfx.data.consts import RANDOM_STATE, TIME_LIMIT, MODEL_TIME_LIMIT
+from src.acfx import OpenmlData
+from src.acfx import RANDOM_STATE, TIME_LIMIT, MODEL_TIME_LIMIT
 from src.refactor.benchmark.ExplainersRegistry import ExplainersRegistry
 from src.refactor.tools.CCStats import CCStats
 from tensorflow.python.keras import backend as keras_backend
@@ -79,10 +79,6 @@ def evaluate(use_suite:bool, time_limit:int, model_time_limit:int):
             except TimeoutError:
                 print('Timeout, aborting, moving to another dataset...')
                 continue
-            # todo
-            #  tu sie dzieje cos dziwnego i z tego potem sa problemy - model_clf.classes_
-            #  daje tablice ktora nie sklada sie z kolejnych liczb [0,2,3,4] i przez to
-            #  potem przykladowo uderzamy z 1 i jest wyjatek
             explainers_registry = ExplainersRegistry(model_clf, causal_model, ds, NUM_CFS, stats, time_limit,
                                                      init_points=init_points, n_iter=n_iter)
             print('Calculating counterfactuals...')

@@ -3,7 +3,7 @@ from interpret.glassbox import ExplainableBoostingClassifier
 from sklearn.utils.extmath import softmax
 import numpy as np
 
-from src.refactor.abstract.ModelBasedCounterOptimizer import ModelBasedCounterOptimizer
+from ..abstract import ModelBasedCounterOptimizer
 
 
 class EBMCounterOptimizer(ModelBasedCounterOptimizer):

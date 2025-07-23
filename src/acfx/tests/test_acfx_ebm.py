@@ -4,8 +4,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.datasets import load_iris
 from interpret.glassbox import ExplainableBoostingClassifier
 
-from src.acfx.acfx_ebm import AcfxEBM
-from src.refactor.evaluation.casual_counterfactuals import compute_causal_penalty
+from src.acfx.AcfxEBM import AcfxEBM
+from src.acfx.evaluation.casual_counterfactuals import compute_causal_penalty
 
 
 @pytest.fixture
@@ -82,8 +82,8 @@ def test_counterfactual_has_lower_causal_penalty(sample_data):
 
     causal_order = list(range(len(features_order)))
 
-    explainer.fit(X_train, query_instance, adjacency_matrix, causal_order, pbounds,
-                  y_train, features_order=features_order)
+    explainer.fit(X=X_train, query_instance=query_instance, adjacency_matrix=adjacency_matrix, casual_order=causal_order, pbounds=pbounds,
+                  y=y_train, features_order=features_order)
 
     cf = explainer.counterfactual(desired_class=original_class)
 

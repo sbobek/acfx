@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from src.refactor.evaluation.casual_counterfactuals import compute_yloss, compute_proximity_loss, compute_sparsity_loss, \
+from src.acfx.evaluation.casual_counterfactuals import compute_yloss, compute_proximity_loss, compute_sparsity_loss, \
     compute_causal_penalty, compute_diversity_loss
 
 

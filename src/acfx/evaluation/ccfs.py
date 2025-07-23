@@ -1,16 +1,18 @@
 import random
+from typing import Sequence, Dict, Tuple, Optional, List
+
 import numpy as np
 import optuna
 import pandas as pd
 from interpret.glassbox import ExplainableBoostingClassifier
 from sklearn.base import ClassifierMixin
 
-from src.refactor.abstract.ModelBasedCounterOptimizer import ModelBasedCounterOptimizer
-from src.refactor.abstract.OptimizerType import OptimizerType
-from src.refactor.evaluation.LogisticRegressionCounterOptimizer import LogisticRegressionCounterOptimizer
-from src.refactor.evaluation.casual_counterfactuals import compute_loss
-from src.refactor.evaluation.EBMCounterOptimizer import EBMCounterOptimizer
-from src.refactor.evaluation.multi_dataset_evaluation import log2file
+from ..abstract import ModelBasedCounterOptimizer
+from ..abstract import OptimizerType
+from .LogisticRegressionCounterOptimizer import LogisticRegressionCounterOptimizer
+from .casual_counterfactuals import compute_loss
+from .EBMCounterOptimizer import EBMCounterOptimizer
+from .multi_dataset_evaluation import log2file
 
 def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight, sparsity_weight,
                          plausibility_weight,
@@ -173,7 +175,7 @@ def _generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_
 
         if optimizer_type == OptimizerType.EBM:
             return get_ebm_optimizer(model, pd.DataFrame(query_instance.reshape(1, -1), columns=features_order))
-        if optimizer_type == OptimizerType.LogisticRegression:
+        if optimizer_type == OptimizerType.LinearAdditive:
             lro = get_logistic_regression_optimizer(model,
                                                     pd.DataFrame(query_instance.reshape(1, -1), columns=features_order))
             return lro
@@ -188,13 +190,12 @@ def _generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_
                                 categorical_indicator=categorical_indicator, features_order= features_order,
                                 masked_features=masked_features, cfs=cfs, X= X, init_points= init_points, n_iter=n_iter)
 
-
-
-def generate_cfs(query_instance, desired_class, adjacency_matrix, casual_order, proximity_weight,
-                 sparsity_weight, plausibility_weight, diversity_weight, bounds, model, features_order=None,
-                 masked_features=None, categorical_indicator=None, X=None,
-                 num_cfs=1, init_points=10, n_iter=1000, sampling_from_model=False,
-                 optimizer_type=OptimizerType.EBM, optimizer=None):
+def generate_cfs(query_instance:np.ndarray, desired_class:int, adjacency_matrix:np.ndarray, casual_order : Sequence[int], proximity_weight : int,
+                 sparsity_weight: int, plausibility_weight: int, diversity_weight: int, bounds:Dict[str, Tuple[float, float]],
+                 model:ClassifierMixin, features_order:Optional[List[str]] =None,
+                 masked_features:Optional[List[str]] =None, categorical_indicator:Optional[List[bool]] =None, X:Optional[pd.DataFrame] =None,
+                 num_cfs:int=1, init_points:int=10, n_iter:int=1000, sampling_from_model:bool=False,
+                 optimizer_type : OptimizerType = OptimizerType.EBM, optimizer : ModelBasedCounterOptimizer=None) -> np.ndarray:
     """
     Generate multiple counterfactuals that minimize the loss function using Bayesian Optimization.
 
@@ -209,16 +210,22 @@ def generate_cfs(query_instance, desired_class, adjacency_matrix, casual_order, 
         diversity_weight: Weight for diversity loss component
         bounds: The bounds for each feature to search over (dict with feature names as keys and tuple (min, max) as values).
         model: The predictive model used to predict class labels.
-        features_order: order of features in query instance (zweryfikowac)
+        features_order: order of features in query instance
         masked_features: masked features vector (features to skip)
         categorical_indicator: True at the index where the variable should be treated as categorical
         num_cfs: The number of counterfactual instances to generate.
         init_points: Number of initial points for Bayesian Optimization.
         n_iter: Number of iterations for Bayesian Optimization.
         X: training dataset to sample from.
+        sampling_from_model: true if you want to generate samples from model after
+        sampling from data and generating with relationship graph
+        optimizer_type: type of optimizer used on model to generate counterfactuals.
+        If you use OptimizerType.Custom, you need to provide optimizer instance
+        optimizer: instance of optimizer (use for optimizer_type = OptimizerType.Custom)
 
-    Returns:
-        The generated counterfactuals that minimize the loss function.
+    Returns
+    -------
+    np.ndarray: The generated counterfactuals that minimize the loss function.
     """
     cfs = []
     for _ in range(num_cfs):

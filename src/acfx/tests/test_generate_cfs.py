@@ -1,4 +1,4 @@
-from src.refactor.model.ccfs import generate_cfs
+from src.acfx.evaluation.ccfs import generate_cfs
 import pytest
 import numpy as np
 from unittest.mock import patch, MagicMock

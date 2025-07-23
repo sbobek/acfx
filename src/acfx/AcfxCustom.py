@@ -1,10 +1,13 @@
 from sklearn.base import ClassifierMixin
 
-from src.acfx.acfx import ACFX
-from src.refactor.abstract.OptimizerType import OptimizerType
+from .ACFX import ACFX
+from .abstract import OptimizerType
 
 
 class AcfxCustom(ACFX):
+    """
+        AcfxCustom: A Counterfactual Explanation Model (using custom blackbox)
+    """
     def __init__(self, blackbox: ClassifierMixin):
         super().__init__(blackbox)
 

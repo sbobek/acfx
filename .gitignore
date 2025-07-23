@@ -247,4 +247,5 @@ src/refactor/progress.txt
 /.vs
 /src/cache
 src/progress.txt
-src/refactor/tests/progress.txt
+src/acfx/tests/progress.txt
+src/acfx/model

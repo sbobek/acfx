@@ -1,20 +1,18 @@
-from collections.abc import Iterable
-
 import pandas as pd
 import numpy as np
 from sklearn.base import ClassifierMixin
-from src.refactor.abstract.ModelBasedCounterOptimizer import ModelBasedCounterOptimizer
+from ..abstract import ModelBasedCounterOptimizer
 
 class LogisticRegressionCounterOptimizer(ModelBasedCounterOptimizer):
     def __init__(self, model:ClassifierMixin, X: pd.DataFrame, feature_bounds:dict):
         if not hasattr(model, 'coef_'):
             raise AttributeError('optimizer requires model.coef_ to be set')
-        if not isinstance(getattr(model, 'coef_', None), Iterable):
-            raise AttributeError('coef_ must be an iterable')
+        if not isinstance(getattr(model, 'coef_', None), list):
+            raise AttributeError('coef_ must be a list')
         if feature_bounds is None:
             raise ValueError("feature_bounds cannot be None")
-        if not isinstance(getattr(feature_bounds, 'coef_', None), Iterable):
-            raise AttributeError('feature_bounds must be an iterable')
+        if not isinstance(feature_bounds, list):
+            raise AttributeError('feature_bounds must be a list')
 
         super().__init__(model, X)
         self.__feature_bounds = feature_bounds

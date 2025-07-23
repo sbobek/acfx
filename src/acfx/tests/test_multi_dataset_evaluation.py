@@ -2,11 +2,11 @@ import os
 import pickle
 
 import pytest
-from unittest.mock import Mock, patch, mock_open
+from unittest.mock import patch, mock_open
 import pandas as pd
 from interpret.glassbox import ExplainableBoostingClassifier
 
-from src.refactor.evaluation.multi_dataset_evaluation import train_ebm_model, preprocess_ds, load_or_dump_cached_file
+from src.acfx.evaluation.multi_dataset_evaluation import train_ebm_model, preprocess_ds, load_or_dump_cached_file
 
 
 class DatasetMock:

@@ -1,10 +1,12 @@
 from interpret.glassbox import ExplainableBoostingClassifier
 
-from src.acfx.acfx import ACFX
-from src.refactor.abstract.OptimizerType import OptimizerType
-from src.refactor.evaluation.EBMCounterOptimizer import EBMCounterOptimizer
+from .ACFX import ACFX
+from .abstract import OptimizerType
 
 class AcfxEBM(ACFX):
+    """
+        AcfxCustom: A Counterfactual Explanation Model (using EBM as blackbox)
+    """
     def __init__(self, blackbox: ExplainableBoostingClassifier):
         super().__init__(blackbox)
 

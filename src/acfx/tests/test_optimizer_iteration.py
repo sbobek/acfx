@@ -3,8 +3,8 @@ from unittest.mock import patch, Mock
 
 import pytest
 
-from src.refactor.model.ccfs import optimizer_iteration
-from src.refactor.tests.consts import LOGFILEPATH
+from src.acfx.evaluation.ccfs import optimizer_iteration
+from src.acfx.tests.consts import LOGFILEPATH
 
 
 class TestOptimizerIteration:

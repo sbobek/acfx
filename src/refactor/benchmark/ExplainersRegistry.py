@@ -2,15 +2,12 @@ import traceback
 # ignore error reported by static code analysis -- this package is loaded from local path
 from cfnow import find_tabular
 from time import time as tstime
-from alibi.explainers import CounterfactualProto
-from alibi.explainers import CEM
-from alibi.explainers import Counterfactual
 import pandas as pd
 import numpy as np
 import signal
 from tensorflow.python.keras import backend as keras_backend
-from src.refactor.model.ccfs import generate_cfs
-from src.refactor.evaluation.EBMCounterOptimizer import EBMCounterOptimizer
+from src.acfx.evaluation.ccfs import generate_cfs
+from src.acfx.evaluation.EBMCounterOptimizer import EBMCounterOptimizer
 
 
 class ExplainersRegistry:
