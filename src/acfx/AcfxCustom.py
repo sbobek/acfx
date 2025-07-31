@@ -13,7 +13,7 @@ class AcfxCustom(ACFX):
 
     def counterfactual(self, desired_class, num_counterfactuals=1, proximity_weight=1,
                        sparsity_weight=1, plausibility_weight=0, diversity_weight=1, init_points=10,
-                       n_iter=1000, sampling_from_model=True, optimizer=None):
+                       n_iter=1000, sampling_from_model=True):
         if self.optimizer is None:
             raise ValueError("Optimizer must be initialized in fit() before calling counterfactual().")
         return super().counterfactual(desired_class, num_counterfactuals, proximity_weight, sparsity_weight,

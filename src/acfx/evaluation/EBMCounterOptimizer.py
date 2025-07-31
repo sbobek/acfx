@@ -7,12 +7,13 @@ from ..abstract import ModelBasedCounterOptimizer
 
 
 class EBMCounterOptimizer(ModelBasedCounterOptimizer):
-    Y_TEST = '_eco_y_test'
-    Y_PRED = '_eco_y_pred'
-    IS_MODIFIABLE = '_eco_is_modifiable'
+    # Y_TEST = '_eco_y_test'
+    # Y_PRED = '_eco_y_pred'
+    # IS_MODIFIABLE = '_eco_is_modifiable'
 
     def __init__(self, model: ExplainableBoostingClassifier, X: pd.DataFrame) -> None:
-        super().__init__(model, X)
+        self.model = model
+        self.X = X
         self.updated_features = {}
 
     def _get_optimized_feature_value(self, feature_name, feature_idx, feature_val, features, feature_masked, term_idx,
@@ -177,11 +178,11 @@ class EBMCounterOptimizer(ModelBasedCounterOptimizer):
 
         return predictions, self.updated_features
 
-    def check_samples(self, target_class, y_test_key, feature_masked):
-        X = self.X.copy()
-        predictions = self.optimize_proba(target_class, feature_masked)
-        X.loc[:, self.Y_TEST] = np.argmax(predictions, axis=1)
-        X.loc[:, self.Y_PRED] = X[self.Y_TEST].map({key: val for key, val in enumerate(self.model.classes_)})
-        X.loc[:, self.IS_MODIFIABLE] = np.where(X[y_test_key] != X[self.Y_PRED], 1, 0)
-
-        return X
+    # def check_samples(self, target_class, y_test_key, feature_masked):
+    #     X = self.X.copy()
+    #     predictions = self.optimize_proba(target_class, feature_masked)
+    #     X.loc[:, self.Y_TEST] = np.argmax(predictions, axis=1)
+    #     X.loc[:, self.Y_PRED] = X[self.Y_TEST].map({key: val for key, val in enumerate(self.model.classes_)})
+    #     X.loc[:, self.IS_MODIFIABLE] = np.where(X[y_test_key] != X[self.Y_PRED], 1, 0)
+    #
+    #     return X

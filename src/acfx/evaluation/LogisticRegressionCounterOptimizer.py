@@ -1,20 +1,24 @@
 import pandas as pd
 import numpy as np
-from sklearn.base import ClassifierMixin
+from sklearn.linear_model._base import LinearClassifierMixin
+
 from ..abstract import ModelBasedCounterOptimizer
 
 class LogisticRegressionCounterOptimizer(ModelBasedCounterOptimizer):
-    def __init__(self, model:ClassifierMixin, X: pd.DataFrame, feature_bounds:dict):
+    def __init__(self, model:LinearClassifierMixin, X: pd.DataFrame, feature_bounds:dict):
         if not hasattr(model, 'coef_'):
             raise AttributeError('optimizer requires model.coef_ to be set')
-        if not isinstance(getattr(model, 'coef_', None), list):
-            raise AttributeError('coef_ must be a list')
         if feature_bounds is None:
-            raise ValueError("feature_bounds cannot be None")
-        if not isinstance(feature_bounds, list):
-            raise AttributeError('feature_bounds must be a list')
+            raise ValueError("feature_bounds must be set")
+        if not isinstance(feature_bounds, dict) or not all(
+                isinstance(k, str) and
+                isinstance(v, tuple) and
+                len(v) == 2 and
+                all(isinstance(i, float) for i in v)
+                for k, v in feature_bounds.items()
+        ):
+            raise AttributeError("feature_bounds must be a dict with string keys and tuple of two floats as values")
 
-        super().__init__(model, X)
         self.__feature_bounds = feature_bounds
         self.model = model
         self.X = X
