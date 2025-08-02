@@ -35,7 +35,7 @@ def test_counterfactual_has_casual_penalty(sample_data):
 
     causal_order = list(range(len(features_order)))
 
-    explainer.fit(X=X_train, query_instance=query_instance, adjacency_matrix=adjacency_matrix, casual_order=causal_order, pbounds=pbounds,
+    explainer.fit(X=X_test, query_instance=query_instance, adjacency_matrix=adjacency_matrix, casual_order=causal_order, pbounds=pbounds,
                   features_order=features_order)
 
     cf = explainer.counterfactual(desired_class=original_class)

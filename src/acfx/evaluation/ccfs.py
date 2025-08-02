@@ -108,7 +108,7 @@ def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal
                 return None
             total_lists.append(selected_features)
             try:
-                _, cf = optimizer.optimize_proba(desired_class, feature_masked=selected_features)
+                cf = optimizer.optimize_proba(desired_class, feature_masked=selected_features)
                 return cf
             except Exception as ex:
                 log2file(f'optimize_proba error occured: {ex}')

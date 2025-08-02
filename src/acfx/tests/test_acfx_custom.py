@@ -30,7 +30,7 @@ class SomeCustomCounterOptimizer(ModelBasedCounterOptimizer):
         self.n_iter = n_iter
 
     @overrides
-    def optimize_proba(self, target_class: int, feature_masked: list[str]):
+    def optimize_proba(self, target_class: int, feature_masked: list[str]) -> Dict[str, float]:
         base_instance = self.X.mean().copy()
         best_instance = base_instance.copy()
         best_score = self.model.predict_proba([base_instance])[0][target_class]
@@ -47,7 +47,7 @@ class SomeCustomCounterOptimizer(ModelBasedCounterOptimizer):
                 best_score = score
                 best_instance = candidate.copy()
 
-        return best_instance.to_numpy()
+        return best_instance.to_dict()
 
 
 def test_custom_cfx_optimizer(sample_data):

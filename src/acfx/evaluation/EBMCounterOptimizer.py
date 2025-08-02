@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 
 import pandas as pd
 from interpret.glassbox import ExplainableBoostingClassifier
@@ -14,13 +14,13 @@ class EBMCounterOptimizer(ModelBasedCounterOptimizer):
     # Y_PRED = '_eco_y_pred'
     # IS_MODIFIABLE = '_eco_is_modifiable'
 
-    def __init__(self, model: ExplainableBoostingClassifier, X: pd.DataFrame) -> None:
+    def __init__(self, model: ExplainableBoostingClassifier, X: pd.DataFrame):
         self.model = model
         self.X = X
         self.updated_features = {}
 
     def _get_optimized_feature_value(self, feature_name, feature_idx, feature_val, features, feature_masked, term_idx,
-                                     class_idx):
+                                     class_idx) -> Dict[str, float]:
         """
         Returns
         -------
@@ -90,7 +90,7 @@ class EBMCounterOptimizer(ModelBasedCounterOptimizer):
         return feature_val
 
     @overrides
-    def optimize_proba(self, target_class : int, feature_masked: List[str]):
+    def optimize_proba(self, target_class : int, feature_masked: List[str]) -> Dict[str, float]:
         """
         The method calculates probabilities taking into account the optimization of given parameters towards the target class.
         Method is based on a default ebm's predict_proba
@@ -186,7 +186,8 @@ class EBMCounterOptimizer(ModelBasedCounterOptimizer):
                 predictions = [[0, x] for x in predictions]
             predictions = softmax(predictions)
 
-        return predictions, self.updated_features
+        #return predictions, self.updated_features
+        return self.updated_features
 
     # def check_samples(self, target_class, y_test_key, feature_masked):
     #     X = self.X.copy()

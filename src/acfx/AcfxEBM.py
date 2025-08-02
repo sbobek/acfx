@@ -17,7 +17,7 @@ class AcfxEBM(ACFX):
         Parameters
         ----------
         blackbox:
-            ExplainableBoostingClassifier blackbox explainer
+            EBM blackbox explainer
         """
         super().__init__(blackbox)
 
