@@ -1,11 +1,22 @@
 from abc import ABC, abstractmethod
+from typing import List
+
 
 class ModelBasedCounterOptimizer(ABC):
     @abstractmethod
-    def optimize_proba(self, target_class, feature_masked):
+    def optimize_proba(self, target_class: int, feature_masked: List[str]):
         """
-        Returns
+        Modifies the instance to increase the probability of the target class by adjusting feature values.
+
+        Parameters:
+        -----------
+        target_class:
+            The desired class to optimize towards.
+        feature_masked:
+            List of interchangeable features
+
+        Returns:
         -------
-        Modified instance to increase the probability of the target class by adjusting feature values.
+        Optimized instance as a numpy array.
         """
         pass

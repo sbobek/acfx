@@ -1,5 +1,8 @@
+from typing import List
+
 import pandas as pd
 from interpret.glassbox import ExplainableBoostingClassifier
+from overrides import overrides
 from sklearn.utils.extmath import softmax
 import numpy as np
 
@@ -19,7 +22,9 @@ class EBMCounterOptimizer(ModelBasedCounterOptimizer):
     def _get_optimized_feature_value(self, feature_name, feature_idx, feature_val, features, feature_masked, term_idx,
                                      class_idx):
         """
-        Returns feature value with maximum score for given target class.
+        Returns
+        -------
+        feature value with maximum score for given target class.
 
         @Todo Needs changes to return optimized value due to given strategy.
         """
@@ -84,16 +89,21 @@ class EBMCounterOptimizer(ModelBasedCounterOptimizer):
 
         return feature_val
 
-    def optimize_proba(self, target_class, feature_masked):
+    @overrides
+    def optimize_proba(self, target_class : int, feature_masked: List[str]):
         """
         The method calculates probabilities taking into account the optimization of given parameters towards the target class.
         Method is based on a default ebm's predict_proba
 
         Parameters:
-        ebm: Trained EBM model
-        X: Dataset
-        target_class: Target class from which we take the features
-        featured_masked: List of interchangeable features
+        ebm:
+            Trained EBM model
+        X:
+            Dataset
+        target_class:
+            Target class from which we take the features
+        featured_masked:
+            List of interchangeable features
         """
         if target_class not in self.model.classes_:
             raise KeyError(f'Class "{target_class}" does not exists in given EBM model')

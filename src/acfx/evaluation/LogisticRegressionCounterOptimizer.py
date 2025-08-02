@@ -1,5 +1,8 @@
+from typing import List
+
 import pandas as pd
 import numpy as np
+from overrides import overrides
 from sklearn.linear_model._base import LinearClassifierMixin
 
 from ..abstract import ModelBasedCounterOptimizer
@@ -23,19 +26,8 @@ class LogisticRegressionCounterOptimizer(ModelBasedCounterOptimizer):
         self.model = model
         self.X = X
 
-    def optimize_proba(self, target_class, feature_masked):
-        """
-        Modifies the instance to increase the probability of the target class by adjusting feature values.
-
-        Parameters:
-            model: A logistic regression model with accessible coefficients.
-            target_class: The desired class to optimize towards.
-            feature_masked: A boolean mask array (same shape as instance) indicating which features can be modified.
-
-        Returns:
-            Optimized instance as a numpy array.
-        """
-
+    @overrides
+    def optimize_proba(self, target_class : int, feature_masked: List[str]):
         for index, instance in self.X.iterrows():
             coefficients = self.model.coef_[target_class]  # Extract model coefficients for the target class
 
@@ -47,13 +39,14 @@ class LogisticRegressionCounterOptimizer(ModelBasedCounterOptimizer):
             if len(direction) < 0:
                 return optimized_instance
 
-            for i, modifiable in enumerate(feature_masked):
-                if modifiable:
-                    if i in self.__feature_bounds:
-                        min_val, max_val = self.__feature_bounds[i]
-                        if direction[i] > 0:
-                            optimized_instance[i] = max_val  # Increase feature value if positive impact
-                        else:
-                            optimized_instance[i] = min_val  # Decrease feature value if negative impact
+            for i, feature_name in enumerate(self.X.columns):
+                if feature_name in feature_masked:
+                    continue
+                if i in self.__feature_bounds:
+                    min_val, max_val = self.__feature_bounds[i]
+                    if direction[i] > 0:
+                        optimized_instance[i] = max_val  # Increase feature value if positive impact
+                    else:
+                        optimized_instance[i] = min_val  # Decrease feature value if negative impact
 
             return optimized_instance

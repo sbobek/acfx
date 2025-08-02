@@ -111,29 +111,31 @@ Below I prepared an example custom optimizer
 .. code-block:: python
 
     class SomeCustomCounterOptimizer(ModelBasedCounterOptimizer):
-        def __init__(self, model: ClassifierMixin, feature_mask: np.ndarray, step_size=0.05, max_iter=100):
+        def __init__(self, model, X: pd.DataFrame, feature_bounds: Dict[str, Tuple[float, float]], n_iter: int = 100):
             self.model = model
-            self.feature_mask = feature_mask
-            self.step_size = step_size
-            self.max_iter = max_iter
+            self.X = X
+            self.feature_bounds = feature_bounds
+            self.n_iter = n_iter
 
-        def optimize_proba(self, target_class: int, feature_masked: np.ndarray):
-            x = feature_masked.copy().astype(float)
-            best_x = x.copy()
-            best_proba = self.model.predict_proba([x])[0][target_class]
-            for _ in range(self.max_iter):
-                for i in range(len(x)):
-                    if not self.feature_mask[i]:
-                        continue
-                    for delta in [-self.step_size, self.step_size]:
-                        x_try = best_x.copy()
-                        x_try[i] += delta
-                        proba = self.model.predict_proba([x_try])[0][target_class]
-                        if proba > best_proba:
-                            best_proba = proba
-                            best_x = x_try
-            return best_x
+        @overrides
+        def optimize_proba(self, target_class: int, feature_masked: list[str]):
+            base_instance = self.X.mean().copy()
+            best_instance = base_instance.copy()
+            best_score = self.model.predict_proba([base_instance])[0][target_class]
 
+            for _ in range(self.n_iter):
+                candidate = base_instance.copy()
+                for feature_name in self.X.columns:
+                    if feature_name not in feature_masked and feature_name in self.feature_bounds:
+                        min_val, max_val = self.feature_bounds[feature_name]
+                        candidate[feature_name] = np.random.uniform(min_val, max_val)
+
+                score = self.model.predict_proba([candidate])[0][target_class]
+                if score > best_score:
+                    best_score = score
+                    best_instance = candidate.copy()
+
+            return best_instance.to_numpy()
 
 ...and example acfx explainer's fit
 
@@ -142,9 +144,9 @@ Below I prepared an example custom optimizer
     model = RandomForestClassifier(n_estimators=100)
     model.fit(X_train, y_train)
 
-    feature_mask = np.array([True] * len(X_train))
-    optimizer = SomeCustomCounterOptimizer(model, feature_mask)
+    feature_masked = ["sepal width (cm)"]
+    optimizer = SomeCustomCounterOptimizer(model, X_test, pbounds)
 
     explainer = AcfxCustom(model)
     explainer.fit(X=X_train, query_instance=query_instance, adjacency_matrix=adjacency_matrix, casual_order=causal_order, pbounds=pbounds,
-                  features_order=features_order, optimizer=optimizer)
+                  features_order=features_order, optimizer=optimizer, masked_features=feature_masked)
