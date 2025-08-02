@@ -1,7 +1,9 @@
+import numpy as np
+from overrides import overrides
 from sklearn.base import ClassifierMixin
-
+from typing import Sequence, Tuple, Dict, Optional, List
 from .ACFX import ACFX
-from .abstract import OptimizerType
+from .abstract import OptimizerType, ModelBasedCounterOptimizer
 
 
 class AcfxCustom(ACFX):
@@ -9,19 +11,70 @@ class AcfxCustom(ACFX):
         AcfxCustom: A Counterfactual Explanation Model (using custom blackbox)
     """
     def __init__(self, blackbox: ClassifierMixin):
+        """
+
+        Parameters
+        ----------
+        blackbox:
+            Custom blackbox explainer
+        """
         super().__init__(blackbox)
 
-    def counterfactual(self, desired_class, num_counterfactuals=1, proximity_weight=1,
-                       sparsity_weight=1, plausibility_weight=0, diversity_weight=1, init_points=10,
-                       n_iter=1000, sampling_from_model=True):
+    @overrides
+    def counterfactual(self, desired_class: int, num_counterfactuals: int = 1, proximity_weight: int = 1,
+                       sparsity_weight: int = 1, plausibility_weight: int = 0, diversity_weight: int = 1,
+                       init_points: int = 10,
+                       n_iter: int = 1000, sampling_from_model: bool = True) -> np.ndarray:
+
         if self.optimizer is None:
             raise ValueError("Optimizer must be initialized in fit() before calling counterfactual().")
         return super().counterfactual(desired_class, num_counterfactuals, proximity_weight, sparsity_weight,
                                                 plausibility_weight, diversity_weight, init_points,
                                       n_iter, sampling_from_model)
 
-    def fit(self, X, query_instance,adjacency_matrix, casual_order, pbounds, optimizer=None, y=None, masked_features=None,
-            categorical_indicator=None, features_order=None):
+    def fit(self, X, query_instance: np.ndarray,adjacency_matrix: np.ndarray, casual_order:Sequence[int],
+            pbounds:Dict[str, Tuple[float, float]],
+            optimizer : ModelBasedCounterOptimizer=None, y=None, masked_features:Optional[List[str]]=None,
+            categorical_indicator:Optional[List[bool]]=None, features_order:Optional[List[str]] =None):
+        """
+        Fits explainer to the sampled data and blackbox model provided in the constructor
+
+        :return:
+        self
+            Fitted estimator.
+
+        Parameters
+        ----------
+        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+            Used for counterfactuals generation
+
+        query_instance:
+            The instance to generate counterfactuals for.
+
+        adjacency_matrix:
+            The adjacency matrix representing the causal structure.
+
+        casual_order:
+            The order of variables in the causal graph.
+
+        pbounds:
+            The bounds for each feature to search over (dict with feature names as keys and tuple (min, max) as values).
+
+        optimizer:
+            Custom optimizer compliant with blackbox predictor
+
+        y : array-like of shape (n_samples,) or (n_samples, n_targets).
+            Target values used for blackbox model fitting only. You can provide fitted blackbox to constructor or fit it in this method by providing this parameter
+
+        masked_features:
+            masked features vector (features to skip)
+
+        categorical_indicator:
+            True at the index where the variable should be treated as categorical
+
+        features_order:
+            order of features in query instance
+        """
         self.optimizer_type = OptimizerType.Custom
         if optimizer is None:
             raise ValueError("Optimizer must be given for AcfxCustom")

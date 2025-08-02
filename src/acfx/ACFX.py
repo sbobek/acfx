@@ -13,6 +13,13 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
         ACFX: A Counterfactual Explanation Model
     """
     def __init__(self, blackbox:ClassifierMixin):
+        """
+
+        Parameters
+        ----------
+        blackbox:
+            Blackbox explainer
+        """
         self.blackbox = blackbox
         self.query_instance = None
         self.optimizer = None
@@ -34,29 +41,37 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
         Fits explainer to the sampled data and blackbox model provided in the constructor
 
         :return:
-        fitted (this) instance ready to generate counterfactuals
+        self
+            Fitted estimator.
 
         Parameters
         ----------
         X : {array-like, sparse matrix} of shape (n_samples, n_features)
             Used for counterfactuals generation
 
-        query_instance: The instance to generate counterfactuals for.
+        query_instance:
+            The instance to generate counterfactuals for.
 
-        adjacency_matrix: The adjacency matrix representing the causal structure.
+        adjacency_matrix:
+            The adjacency matrix representing the causal structure.
 
-        casual_order: The order of variables in the causal graph.
+        casual_order:
+            The order of variables in the causal graph.
 
-        pbounds: The bounds for each feature to search over (dict with feature names as keys and tuple (min, max) as values).
+        pbounds:
+            The bounds for each feature to search over (dict with feature names as keys and tuple (min, max) as values).
 
-        y : array-like of shape (n_samples,) or (n_samples, n_targets). Target values used for blackbox model fitting only.
-        You can provide fitted blackbox to constructor or fit it in this method by providing this parameter
+        y : array-like of shape (n_samples,) or (n_samples, n_targets).
+            Target values used for blackbox model fitting only. You can provide fitted blackbox to constructor or fit it in this method by providing this parameter
 
-        masked_features: masked features vector (features to skip)
+        masked_features:
+            masked features vector (features to skip)
 
-        categorical_indicator: True at the index where the variable should be treated as categorical
+        categorical_indicator:
+            True at the index where the variable should be treated as categorical
 
-        features_order: order of features in query instance
+        features_order:
+            order of features in query instance
         """
         if y is not None:
             self.blackbox.fit(X, y)
@@ -95,19 +110,29 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
 
         Parameters
         ----------
-        desired_class: The target class for the counterfactuals.
-        num_counterfactuals: The number of counterfactual instances to generate.
-        proximity_weight: Weight for proximity loss component
-        sparsity_weight: Weight for sparsity loss component
-        plausibility_weight: Weight for plausibility loss component
-        diversity_weight: Weight for diversity loss component
-        init_points: Number of initial points for Bayesian Optimization.
-        n_iter: Number of iterations for Bayesian Optimization.
-        sampling_from_model: true if you want to generate samples from model after sampling from data and generating with relationship graph
+        desired_class:
+            The target class for the counterfactuals.
+        num_counterfactuals:
+            The number of counterfactual instances to generate.
+        proximity_weight:
+            Weight for proximity loss component
+        sparsity_weight:
+            Weight for sparsity loss component
+        plausibility_weight:
+            Weight for plausibility loss component
+        diversity_weight:
+            Weight for diversity loss component
+        init_points:
+            Number of initial points for Bayesian Optimization.
+        n_iter:
+            Number of iterations for Bayesian Optimization.
+        sampling_from_model:
+            true if you want to generate samples from model after sampling from data and generating with relationship graph
 
         Returns
         -------
-        np.ndarray: The generated counterfactuals that minimize the loss function.
+        np.ndarray:
+            The generated counterfactuals that minimize the loss function.
         """
         if self.query_instance is None:
             raise ValueError("query_instance must be set via fit() before calling counterfactual()")

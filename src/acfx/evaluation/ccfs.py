@@ -200,32 +200,51 @@ def generate_cfs(query_instance:np.ndarray, desired_class:int, adjacency_matrix:
     Generate multiple counterfactuals that minimize the loss function using Bayesian Optimization.
 
     Parameters:
-        query_instance: The instance to generate counterfactuals for.
-        desired_class: The target class for the counterfactuals.
-        adjacency_matrix: The adjacency matrix representing the causal structure.
-        casual_order: The order of variables in the causal graph.
-        proximity_weight: Weight for proximity loss component
-        sparsity_weight: Weight for sparsity loss component
-        plausibility_weight: Weight for plausibility loss component
-        diversity_weight: Weight for diversity loss component
-        bounds: The bounds for each feature to search over (dict with feature names as keys and tuple (min, max) as values).
-        model: The predictive model used to predict class labels.
-        features_order: order of features in query instance
-        masked_features: masked features vector (features to skip)
-        categorical_indicator: True at the index where the variable should be treated as categorical
-        num_cfs: The number of counterfactual instances to generate.
-        init_points: Number of initial points for Bayesian Optimization.
-        n_iter: Number of iterations for Bayesian Optimization.
-        X: training dataset to sample from.
-        sampling_from_model: true if you want to generate samples from model after
-        sampling from data and generating with relationship graph
-        optimizer_type: type of optimizer used on model to generate counterfactuals.
-        If you use OptimizerType.Custom, you need to provide optimizer instance
-        optimizer: instance of optimizer (use for optimizer_type = OptimizerType.Custom)
+        query_instance:
+            The instance to generate counterfactuals for.
+        desired_class:
+            The target class for the counterfactuals.
+        adjacency_matrix:
+            The adjacency matrix representing the causal structure.
+        casual_order:
+            The order of variables in the causal graph.
+        proximity_weight:
+            Weight for proximity loss component
+        sparsity_weight:
+            Weight for sparsity loss component
+        plausibility_weight:
+            Weight for plausibility loss component
+        diversity_weight:
+            Weight for diversity loss component
+        bounds:
+            The bounds for each feature to search over (dict with feature names as keys and tuple (min, max) as values).
+        model:
+            The predictive model used to predict class labels.
+        features_order:
+            order of features in query instance
+        masked_features:
+            masked features vector (features to skip)
+        categorical_indicator:
+            True at the index where the variable should be treated as categorical
+        num_cfs:
+            The number of counterfactual instances to generate.
+        init_points:
+            Number of initial points for Bayesian Optimization.
+        n_iter:
+            Number of iterations for Bayesian Optimization.
+        X:
+            training dataset to sample from.
+        sampling_from_model:
+            true if you want to generate samples from model after sampling from data and generating with relationship graph
+        optimizer_type:
+            type of optimizer used on model to generate counterfactuals. If you use OptimizerType.Custom, you need to provide optimizer instance
+        optimizer:
+            instance of optimizer (use for optimizer_type = OptimizerType.Custom)
 
     Returns
     -------
-    np.ndarray: The generated counterfactuals that minimize the loss function.
+    np.ndarray:
+        The generated counterfactuals that minimize the loss function.
     """
     cfs = []
     for _ in range(num_cfs):

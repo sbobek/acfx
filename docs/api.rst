@@ -24,10 +24,6 @@ Counterfactual generation
     :toctree: counterfactual_generation/
 
     acfx.evaluation.ccfs
-    acfx.evaluation.EBMCounterOptimizer
-    acfx.evaluation.LogisticRegressionCounterOptimizer
-
-
 
 .. _abstract:
 
