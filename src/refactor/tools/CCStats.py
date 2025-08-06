@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from src.acfx.evaluation.casual_counterfactuals import compute_yloss, compute_proximity_loss, compute_sparsity_loss, \
-    compute_causal_penalty, compute_diversity_loss
+from src.acfx.evaluation.loss import compute_causal_penalty, compute_yloss, compute_proximity_loss, \
+    compute_sparsity_loss, compute_diversity_loss
 
 
 class CCStats:

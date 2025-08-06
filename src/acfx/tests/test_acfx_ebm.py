@@ -5,7 +5,7 @@ from sklearn.datasets import load_iris
 from interpret.glassbox import ExplainableBoostingClassifier
 
 from src.acfx.AcfxEBM import AcfxEBM
-from src.acfx.evaluation.casual_counterfactuals import compute_causal_penalty
+from src.acfx.evaluation.loss import compute_causal_penalty
 
 
 @pytest.fixture

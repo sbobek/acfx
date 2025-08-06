@@ -5,7 +5,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.datasets import load_iris
 
 from src.acfx.AcfxLinear import AcfxLinear
-from src.acfx.evaluation.casual_counterfactuals import compute_causal_penalty
+from src.acfx.evaluation.loss import compute_causal_penalty
+
 
 @pytest.fixture
 def sample_data():

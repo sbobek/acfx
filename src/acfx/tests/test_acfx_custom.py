@@ -10,7 +10,7 @@ from sklearn.model_selection import train_test_split
 
 from src.acfx import AcfxCustom
 from src.acfx.abstract import ModelBasedCounterOptimizer
-from src.acfx.evaluation.casual_counterfactuals import compute_causal_penalty
+from src.acfx.evaluation.loss import compute_causal_penalty
 
 
 @pytest.fixture

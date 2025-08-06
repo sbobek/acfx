@@ -10,7 +10,7 @@ from sklearn.base import ClassifierMixin
 from ..abstract import ModelBasedCounterOptimizer
 from ..abstract import OptimizerType
 from .LogisticRegressionCounterOptimizer import LogisticRegressionCounterOptimizer
-from .casual_counterfactuals import compute_loss
+from .loss import compute_loss
 from .EBMCounterOptimizer import EBMCounterOptimizer
 from .multi_dataset_evaluation import log2file
 

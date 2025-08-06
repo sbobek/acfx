@@ -15,7 +15,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 keywords = ["xai", "tabular data","explainability", "model-agnostic", "counterfactual", "causal"]
-dependencies = ["pandas>=1.4.3",    #minimal set of requirements fro the project (not benchmark)
+dependencies = ["pandas>=1.4.3",    #minimal set of requirements from the project (not benchmark)
     "numpy>=1.22.4,<2.0",
     "scikit-learn>=1.1.1",
     "matplotlib>=3.5.2",
