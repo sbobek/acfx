@@ -24,7 +24,7 @@ class TestGenerateCfs:
                 proximity_weight, sparsity_weight, plausibility_weight, diversity_weight,
                 bounds, model, features_order, masked_features, categorical_indicator, X)
 
-    @patch('src.refactor.model.ccfs.generate_single_cf')
+    @patch('src.benchmark.model.ccfs.generate_single_cf')
     def test_generate_cfs_output_shape(self, mock_generate_single_cf, mock_inputs):
         mock_generate_single_cf.return_value = np.array([[0.6, 1.1, 2.1]])
         num_cfs = 5
@@ -32,7 +32,7 @@ class TestGenerateCfs:
         assert isinstance(result, np.ndarray)
         assert result.shape == (num_cfs, 3)
 
-    @patch('src.refactor.model.ccfs.generate_single_cf')
+    @patch('src.benchmark.model.ccfs.generate_single_cf')
     def test_generate_cfs_multiple_calls(self, mock_generate_single_cf, mock_inputs):
         mock_generate_single_cf.side_effect = [
             np.array([[0.6, 1.1, 2.1]]),

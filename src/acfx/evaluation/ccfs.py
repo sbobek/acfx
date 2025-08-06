@@ -6,13 +6,12 @@ import optuna
 import pandas as pd
 from interpret.glassbox import ExplainableBoostingClassifier
 from sklearn.base import ClassifierMixin
-
+from sklearn.linear_model._base import LinearClassifierMixin
 from ..abstract import ModelBasedCounterOptimizer
 from ..abstract import OptimizerType
 from .LogisticRegressionCounterOptimizer import LogisticRegressionCounterOptimizer
 from .loss import compute_loss
 from .EBMCounterOptimizer import EBMCounterOptimizer
-from .multi_dataset_evaluation import log2file
 
 def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight, sparsity_weight,
                          plausibility_weight,
@@ -111,7 +110,7 @@ def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal
                 cf = optimizer.optimize_proba(desired_class, feature_masked=selected_features)
                 return cf
             except Exception as ex:
-                log2file(f'optimize_proba error occured: {ex}')
+                print(f'optimize_proba error occured: {ex}')
                 return None
         print(
             f'Sampling from model... Already sampled {sample_size} from {Xdesired.shape[0]} possible in data sampling...')
@@ -170,7 +169,7 @@ def _generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_
     def get_optimizer():
         def get_ebm_optimizer(model_classifier: ExplainableBoostingClassifier, query_instance: pd.DataFrame):
             return EBMCounterOptimizer(model_classifier, query_instance)
-        def get_logistic_regression_optimizer(model_classifier: ClassifierMixin, query_instance: pd.DataFrame):
+        def get_logistic_regression_optimizer(model_classifier: LinearClassifierMixin, query_instance: pd.DataFrame):
             return LogisticRegressionCounterOptimizer(model_classifier, query_instance, bounds)
 
         if optimizer_type == OptimizerType.EBM:

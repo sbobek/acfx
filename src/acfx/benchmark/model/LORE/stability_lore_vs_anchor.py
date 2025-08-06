@@ -6,21 +6,12 @@ from prepare_dataset import *
 from neighbor_generator import *
 
 from anchor import anchor_tabular
-from statistics import mode
 
-from sklearn.metrics import f1_score
-from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
 warnings.filterwarnings("ignore")
 
-from sklearn.svm import LinearSVC
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.neural_network import MLPClassifier
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
-
-from evaluation import hit_outcome
 
 
 def fit_anchor(dataset, X_train, X_test, y_train, y_test, X2E):

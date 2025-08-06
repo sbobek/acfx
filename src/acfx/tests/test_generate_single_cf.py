@@ -41,8 +41,8 @@ class TestGenerateSingleCF:
                masked_features, cfs, X, init_points, n_iter, optimizer_type)
 
     @patch('optuna.create_study')
-    @patch('src.refactor.evaluation.casual_counterfactuals.compute_loss')
-    @patch('src.refactor.model.ccfs.get_ebm_optimizer')
+    @patch('src.benchmark.evaluation.casual_counterfactuals.compute_loss')
+    @patch('src.benchmark.model.ccfs.get_ebm_optimizer')
     def test_generate_single_cf_valid_input(self,mock_get_ebm_optimizer, mock_compute_loss, mock_create_study, setup_teardown):
         (query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight, sparsity_weight,
          plausibility_weight, diversity_weight, bounds, model, categorical_indicator, features_order,
@@ -62,8 +62,8 @@ class TestGenerateSingleCF:
         assert np.array_equal(best_cf, expected_cf)
 
     @patch('optuna.create_study')
-    @patch('src.refactor.evaluation.casual_counterfactuals.compute_loss')
-    @patch('src.refactor.model.ccfs.get_ebm_optimizer')
+    @patch('src.benchmark.evaluation.casual_counterfactuals.compute_loss')
+    @patch('src.benchmark.model.ccfs.get_ebm_optimizer')
     def test_generate_single_cf_invalid_bounds(self,mock_get_ebm_optimizer, mock_compute_loss, mock_create_study, setup_teardown):
         (query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight, sparsity_weight,
          plausibility_weight, diversity_weight, bounds, model, categorical_indicator, features_order,
@@ -77,8 +77,8 @@ class TestGenerateSingleCF:
                                 n_iter, optimizer_type)
 
     @patch('optuna.create_study')
-    @patch('src.refactor.evaluation.casual_counterfactuals.compute_loss')
-    @patch('src.refactor.model.ccfs.get_ebm_optimizer')
+    @patch('src.benchmark.evaluation.casual_counterfactuals.compute_loss')
+    @patch('src.benchmark.model.ccfs.get_ebm_optimizer')
     def test_generate_single_cf_invalid_optimizer_type(self,mock_get_ebm_optimizer, mock_compute_loss, mock_create_study, setup_teardown):
         (query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight, sparsity_weight,
          plausibility_weight, diversity_weight, bounds, model, categorical_indicator, features_order,

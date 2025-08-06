@@ -1,13 +1,11 @@
 from . import anchor_base
 from . import anchor_explanation
-from . import utils
 import lime
 import lime.lime_tabular
 import collections
 import sklearn
 import numpy as np
 import os
-import copy
 import string
 from io import open
 import json

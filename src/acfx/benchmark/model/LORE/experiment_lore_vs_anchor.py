@@ -15,10 +15,6 @@ from sklearn.model_selection import train_test_split
 warnings.filterwarnings("ignore")
 
 from sklearn.svm import LinearSVC
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.neural_network import MLPClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
 
 from evaluation import hit_outcome
 
@@ -207,7 +203,7 @@ def main():
 
     start_index = -1
 
-    path = './'
+    path = '/'
     path_data = path + 'datasets/'
     path_exp = path + 'experiments/'
 

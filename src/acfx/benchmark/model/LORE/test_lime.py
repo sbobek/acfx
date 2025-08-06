@@ -1,6 +1,3 @@
-import lime
-import lime.lime_tabular
-
 from prepare_dataset import *
 from neighbor_generator import *
 
@@ -13,7 +10,7 @@ warnings.filterwarnings("ignore")
 def main():
 
     dataset_name = 'german_credit.csv'
-    path_data = './datasets/'
+    path_data = 'datasets/'
     dataset = prepare_german_dataset(dataset_name, path_data)
 
     X, y = dataset['X'], dataset['y']
@@ -44,13 +41,13 @@ def main():
 
     # Create Lime Explanator
     num_features = 5
-    explainer = lime.lime_tabular.LimeTabularExplainer(X2E,
-                                                       feature_names=feature_names,
-                                                       class_names=possible_outcomes,
-                                                       categorical_features=idx_discrete_features,
-                                                       categorical_names=categorical_names,
-                                                       verbose=False
-                                                       )
+    explainer = src.benchmark.model.LORE.lime.lime_tabular.LimeTabularExplainer(X2E,
+                                                                                feature_names=feature_names,
+                                                                                class_names=possible_outcomes,
+                                                                                categorical_features=idx_discrete_features,
+                                                                                categorical_names=categorical_names,
+                                                                                verbose=False
+                                                                                )
 
     exp, Zlr, Z, lr = explainer.explain_instance(X2E[idx_record2explain], blackbox.predict_proba,
                                                  num_features=num_features, num_samples=1000)

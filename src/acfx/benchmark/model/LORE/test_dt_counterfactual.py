@@ -4,9 +4,6 @@ import pyyadt
 from prepare_dataset import *
 from neighbor_generator import *
 
-from sklearn.datasets import make_moons
-from sklearn.preprocessing import StandardScaler
-
 from sklearn.model_selection import train_test_split
 
 
@@ -48,7 +45,7 @@ def main():
     # }
 
     dataset_name = 'german_credit.csv'
-    path_data = './datasets/'
+    path_data = 'datasets/'
     dataset = prepare_german_dataset(dataset_name, path_data)
 
     X, y = dataset['X'], dataset['y']
@@ -74,7 +71,7 @@ def main():
     dfZ = label_decode(dfZ, discrete, label_encoder)
 
     dt, dt_dot = pyyadt.fit(dfZ, class_name, columns, features_type, discrete, continuous,
-                            filename='pyyadt_test', path='./', sep=';', log=False)
+                            filename='pyyadt_test', path='/', sep=';', log=False)
 
     dt_dot.write_png('pyyadt_test.png')
     # img = Image.open('pyyadt_test.png')

@@ -1,8 +1,6 @@
 import random
 import pyyadt
 
-from PIL import Image
-from prepare_dataset import *
 from neighbor_generator import *
 
 from sklearn.datasets import make_moons
@@ -72,7 +70,7 @@ def main():
     dfZ = label_decode(dfZ, discrete, label_encoder)
 
     dt, dt_dot = pyyadt.fit(dfZ, class_name, columns, features_type, discrete, continuous,
-                            filename='pyyadt_test', path='./', sep=';', log=False)
+                            filename='pyyadt_test', path='/', sep=';', log=False)
 
     dt_dot.write_png('pyyadt_test.png')
     # img = Image.open('pyyadt_test.png')

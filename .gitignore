@@ -240,12 +240,8 @@ fabric.properties
 # Android studio 3.1+ serialized cache file
 .idea/caches/build_file_checksums.ser
 
-# temp - refactor
-/src/refactor/cache/
-src/refactor/progress.txt
+# temp - benchmark
 /.idea
 /.vs
-/src/cache
-src/progress.txt
-src/acfx/tests/progress.txt
-src/acfx/model
+cache
+progress.txt

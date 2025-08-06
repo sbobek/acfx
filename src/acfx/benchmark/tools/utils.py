@@ -1,24 +1,65 @@
-from typing import Dict, List
+import os
+import pickle
+from src.acfx.evaluation.multi_dataset_evaluation import DEFAULT_LOG_PATH
+from typing import Dict
+
 import numpy as np
 
-def prepare_ds_lore(df, name = 'dataset', class_name='class', discrete=[], label_encoder={}):
+def load_or_dump_cached_file(cache_dir, cached_file_name, cached_data=None):
+    """
+    Load cached data from the specified file, or if cached_data is provided,
+    dump it into the file in the specified directory.
+
+    If the file does not exist or loading fails, and cached_data is not provided, return None.
+
+    Parameters:
+    cache_dir (str): Directory where the cache file is stored.
+    cached_file_name (str): Name of the cache file.
+    cached_data (object, optional): Data to be cached (default is None).
+
+    Returns:
+    object or None: The loaded cached data, or None if loading is not possible and cached_data is None.
+    """
+    # Ensure the directory exists
+    if not os.path.exists(cache_dir):
+        os.makedirs(cache_dir)
+
+    # Construct the full file path
+    file_path = os.path.join(cache_dir, cached_file_name)
+
+    # If cached_data is provided, dump it into the file
+    if cached_data is not None:
+        with open(file_path, 'wb') as file:
+            pickle.dump(cached_data, file)
+        return cached_data
+
+    # Otherwise, try loading the cached data
+    if os.path.exists(file_path):
+        try:
+            with open(file_path, 'rb') as file:
+                return pickle.load(file)
+        except (pickle.UnpicklingError, EOFError, FileNotFoundError):
+            return None
+    else:
+        return None
+
+def prepare_ds_lore(df, name='dataset', class_name='class', discrete=[], label_encoder={}):
     features = [f for f in df.columns if f not in [class_name]]
-    
+
     dataset = {}
     dataset['name'] = name
     dataset['df'] = df
     dataset['columns'] = list(df.columns)
     dataset['class_name'] = class_name
     dataset['possible_outcomes'] = list(np.unique(df[class_name]))
-    
+
     types = {}
-    types['integer'] = [c for c,t in zip(df.columns, df.dtypes) if 'int' in str(t)]
-    types['double'] = [c for c,t in zip(df.columns, df.dtypes) if 'float' in str(t)]
-    types['string'] = [c for c,t in zip(df.columns, df.dtypes) if 'str' in str(t) or 'object' in str(t)]
+    types['integer'] = [c for c, t in zip(df.columns, df.dtypes) if 'int' in str(t)]
+    types['double'] = [c for c, t in zip(df.columns, df.dtypes) if 'float' in str(t)]
+    types['string'] = [c for c, t in zip(df.columns, df.dtypes) if 'str' in str(t) or 'object' in str(t)]
     dataset['type_features'] = types
-    
-    
-    typemap={}
+
+    typemap = {}
     typemap['object'] = 'string'
     typemap['float64'] = 'double'
     typemap['float32'] = 'double'
@@ -26,19 +67,21 @@ def prepare_ds_lore(df, name = 'dataset', class_name='class', discrete=[], label
     typemap['float'] = 'double'
     typemap['int'] = 'integer'
     typemap['int64'] = 'integer'
-    dataset['features_type'] = dict(zip(df.columns, map(lambda x: typemap[str(x)],df.dtypes)))
-    
+    dataset['features_type'] = dict(zip(df.columns, map(lambda x: typemap[str(x)], df.dtypes)))
+
     dataset['discrete'] = list(df[features].columns[discrete])
     dataset['continuous'] = [f for f in features if f not in dataset['discrete']]
     dataset['idx_features'] = dict(enumerate(df[features].columns))
     dataset['label_encoder'] = label_encoder
-    dataset['discrete_indices'] = [list(df.columns).index(f) for f in dataset['discrete']] 
-    dataset['discrete_names'] = dict(zip(dataset['discrete_indices'],[np.unique(df[features[i]]) for i in dataset['discrete_indices']]))
+    dataset['discrete_indices'] = [list(df.columns).index(f) for f in dataset['discrete']]
+    dataset['discrete_names'] = dict(
+        zip(dataset['discrete_indices'], [np.unique(df[features[i]]) for i in dataset['discrete_indices']]))
     dataset['feature_names'] = features
-    dataset['X'] =  df[dataset['feature_names']].values
+    dataset['X'] = df[dataset['feature_names']].values
     dataset['y'] = df[dataset['class_name']].values
-    
+
     return dataset
+
 
 def merge_default_parameters(hyperparams: Dict, default: Dict) -> Dict:
     """
@@ -88,3 +131,7 @@ def merge_default_parameters(hyperparams: Dict, default: Dict) -> Dict:
             dict_output[key] = hyperparams[key]
 
     return dict_output
+
+def log2file(output, filepath=DEFAULT_LOG_PATH, clear=False):
+    with open(filepath, 'w' if clear else 'a') as f:
+        f.write(output)

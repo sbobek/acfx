@@ -1,4 +1,4 @@
-from src.acfx.data.consts import TEST_SIZE, RANDOM_STATE
+from src.acfx.benchmark.data.consts import TEST_SIZE, RANDOM_STATE
 import json
 
 class DataRecipe:

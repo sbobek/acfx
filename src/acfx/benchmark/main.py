@@ -7,12 +7,14 @@ import warnings
 import signal
 import openml
 import traceback
-from src.acfx.evaluation.multi_dataset_evaluation import load_or_dump_cached_file, train_ebm_model, log2file, train_causal_model, \
+
+from .data import OpenmlData
+from .data.consts import RANDOM_STATE, TIME_LIMIT, MODEL_TIME_LIMIT
+from src.acfx.evaluation.multi_dataset_evaluation import train_ebm_model, train_causal_model, \
     timeout_handler
-from src.acfx import OpenmlData
-from src.acfx import RANDOM_STATE, TIME_LIMIT, MODEL_TIME_LIMIT
-from src.refactor.benchmark.ExplainersRegistry import ExplainersRegistry
-from src.refactor.tools.CCStats import CCStats
+from .tools.utils import log2file, load_or_dump_cached_file
+from .ExplainersRegistry import ExplainersRegistry
+from .tools.CCStats import CCStats
 from tensorflow.python.keras import backend as keras_backend
 
 def set_session():
@@ -48,7 +50,7 @@ def evaluate(use_suite:bool, time_limit:int, model_time_limit:int):
         tasks = classification_datasets['did']
     # OpenML datasets
     warnings.filterwarnings('ignore')
-    cache_dir = './cache/'
+    cache_dir = 'cache/'
     for task_id in tasks:
         try:
             ds = load_or_dump_cached_file(cache_dir, f'dataset-{task_id}.pkl', cached_data=None)

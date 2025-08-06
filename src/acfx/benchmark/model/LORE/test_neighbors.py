@@ -22,7 +22,7 @@ def main():
     }
 
     dataset_name = 'german_credit.csv'
-    path_data = './datasets/'
+    path_data = 'datasets/'
     dataset = prepare_german_dataset(dataset_name, path_data)
 
     X, y = dataset['X'], dataset['y']
