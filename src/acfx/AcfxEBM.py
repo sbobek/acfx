@@ -22,7 +22,7 @@ class AcfxEBM(ACFX):
         super().__init__(blackbox)
 
     @overrides
-    def fit(self, X, query_instance: np.ndarray, adjacency_matrix:np.ndarray, casual_order:Sequence[int],
+    def fit(self, X, query_instance: np.ndarray, adjacency_matrix:Optional[np.ndarray], casual_order:Optional[Sequence[int]],
             pbounds:Dict[str, Tuple[float, float]],y=None, masked_features:Optional[List[str]] = None,
             categorical_indicator:Optional[List[bool]] =None, features_order:Optional[List[str]] =None):
         self.optimizer_type = OptimizerType.EBM

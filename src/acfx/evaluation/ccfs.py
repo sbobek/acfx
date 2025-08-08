@@ -23,13 +23,6 @@ def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal
     """
     optuna.logging.set_verbosity(optuna.logging.WARNING)
 
-    if categorical_indicator is None:
-        categorical_indicator = [False] * len(bounds)
-    if features_order is None:
-        features_order = list(bounds.keys())
-    if masked_features is None:
-        masked_features = features_order
-
     def update_masked_features_dict(features_order, masked_features, **params):
         for feature, value in zip(features_order, query_instance):
             if feature not in masked_features:
@@ -182,6 +175,14 @@ def _generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_
             return optimizer
         else:
             raise NotImplementedError()
+
+    if categorical_indicator is None:
+        categorical_indicator = [False] * len(bounds)
+    if features_order is None:
+        features_order = list(bounds.keys())
+    if masked_features is None:
+        masked_features = features_order
+
     return __generate_single_cf(query_instance=query_instance, desired_class=desired_class, adjacency_matrix=adjacency_matrix,
                                 causal_order=causal_order, proximity_weight=proximity_weight, sparsity_weight=sparsity_weight,
                                 plausibility_weight=plausibility_weight, diversity_weight=diversity_weight, bounds=bounds,
@@ -189,8 +190,8 @@ def _generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_
                                 categorical_indicator=categorical_indicator, features_order= features_order,
                                 masked_features=masked_features, cfs=cfs, X= X, init_points= init_points, n_iter=n_iter)
 
-def generate_cfs(query_instance:np.ndarray, desired_class:int, adjacency_matrix:np.ndarray, casual_order : Sequence[int], proximity_weight : int,
-                 sparsity_weight: int, plausibility_weight: int, diversity_weight: int, bounds:Dict[str, Tuple[float, float]],
+def generate_cfs(query_instance:np.ndarray, desired_class:int, adjacency_matrix:np.ndarray, casual_order : Sequence[int], proximity_weight : float,
+                 sparsity_weight: float, plausibility_weight: float, diversity_weight: float, bounds:Dict[str, Tuple[float, float]],
                  model:ClassifierMixin, features_order:Optional[List[str]] =None,
                  masked_features:Optional[List[str]] =None, categorical_indicator:Optional[List[bool]] =None, X:Optional[pd.DataFrame] =None,
                  num_cfs:int=1, init_points:int=10, n_iter:int=1000, sampling_from_model:bool=False,

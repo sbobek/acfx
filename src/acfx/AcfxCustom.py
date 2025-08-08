@@ -21,8 +21,8 @@ class AcfxCustom(ACFX):
         super().__init__(blackbox)
 
     @overrides
-    def counterfactual(self, desired_class: int, num_counterfactuals: int = 1, proximity_weight: int = 1,
-                       sparsity_weight: int = 1, plausibility_weight: int = 0, diversity_weight: int = 1,
+    def counterfactual(self, desired_class: int, num_counterfactuals: int = 1, proximity_weight: float = 1,
+                       sparsity_weight: float = 1, plausibility_weight: float = 0, diversity_weight: float = 1,
                        init_points: int = 10,
                        n_iter: int = 1000, sampling_from_model: bool = True) -> np.ndarray:
 
@@ -32,7 +32,7 @@ class AcfxCustom(ACFX):
                                                 plausibility_weight, diversity_weight, init_points,
                                       n_iter, sampling_from_model)
 
-    def fit(self, X, query_instance: np.ndarray,adjacency_matrix: np.ndarray, casual_order:Sequence[int],
+    def fit(self, X, query_instance: np.ndarray, adjacency_matrix:Optional[np.ndarray], casual_order:Optional[Sequence[int]],
             pbounds:Dict[str, Tuple[float, float]],
             optimizer : ModelBasedCounterOptimizer=None, y=None, masked_features:Optional[List[str]]=None,
             categorical_indicator:Optional[List[bool]]=None, features_order:Optional[List[str]] =None):

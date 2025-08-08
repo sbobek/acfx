@@ -38,7 +38,7 @@ class SomeCustomCounterOptimizer(ModelBasedCounterOptimizer):
         for _ in range(self.n_iter):
             candidate = base_instance.copy()
             for feature_name in self.X.columns:
-                if feature_name not in feature_masked and feature_name in self.feature_bounds:
+                if feature_name in feature_masked and feature_name in self.feature_bounds:
                     min_val, max_val = self.feature_bounds[feature_name]
                     candidate[feature_name] = np.random.uniform(min_val, max_val)
 

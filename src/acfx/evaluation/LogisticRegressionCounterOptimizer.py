@@ -61,7 +61,7 @@ class LogisticRegressionCounterOptimizer(ModelBasedCounterOptimizer):
             optimized_instance = instance.copy()
 
             for i, feature_name in enumerate(self.X.columns):
-                if feature_name in feature_masked:
+                if feature_name not in feature_masked:
                     continue
                 if feature_name in self.__feature_bounds:
                     min_val, max_val = self.__feature_bounds[feature_name]

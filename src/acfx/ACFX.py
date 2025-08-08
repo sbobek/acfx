@@ -34,7 +34,7 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
 
 
     @abstractmethod
-    def fit(self, X, query_instance: np.ndarray, adjacency_matrix:np.ndarray, casual_order:Sequence[int],
+    def fit(self, X, query_instance: np.ndarray, adjacency_matrix:Optional[np.ndarray], casual_order:Optional[Sequence[int]],
             pbounds:Dict[str, Tuple[float, float]],y=None, masked_features:Optional[List[str]] = None,
             categorical_indicator:Optional[List[bool]] =None, features_order:Optional[List[str]] =None):
         """
@@ -79,8 +79,6 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
         self.categorical_indicator = categorical_indicator
         self.features_order = features_order
         self.query_instance = query_instance
-        if adjacency_matrix.shape[0] != adjacency_matrix.shape[1]:
-            raise ValueError("adjacency matrix must have same number of rows and columns")
         self.adjacency_matrix = adjacency_matrix
         self.casual_order = casual_order
         self.pbounds = pbounds
@@ -102,8 +100,8 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
         """
         return self.blackbox.predict(X)
 
-    def counterfactual(self, desired_class:int, num_counterfactuals: int =1, proximity_weight : int =1,
-                       sparsity_weight : int =1, plausibility_weight : int =0, diversity_weight : int =1, init_points : int =10,
+    def counterfactual(self, desired_class:int, num_counterfactuals: int =1, proximity_weight : float =1,
+                       sparsity_weight : float =1, plausibility_weight : float =0, diversity_weight : float =1, init_points : int =10,
                        n_iter : int =1000, sampling_from_model : bool=True) -> np.ndarray:
         """
         Generates counterfactuals
@@ -134,6 +132,16 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
         np.ndarray:
             The generated counterfactuals that minimize the loss function.
         """
+        if plausibility_weight > 0:
+            if self.casual_order is None:
+                raise ValueError("Casual order must be provided if plausibility loss is on")
+            if self.adjacency_matrix is None:
+                raise ValueError("adjacency_matrix must be provided")
+            if self.adjacency_matrix.shape[0] != self.adjacency_matrix.shape[1]:
+                raise ValueError("adjacency matrix must have same number of rows and columns")
+            if self.adjacency_matrix.shape[0] != len(self.casual_order):
+                raise ValueError("adjacency matrix must be of same length as casual order")
+
         if self.query_instance is None:
             raise ValueError("query_instance must be set via fit() before calling counterfactual()")
         if self.optimizer_type is None:
