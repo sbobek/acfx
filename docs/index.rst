@@ -13,7 +13,7 @@ Welcome to the ACFX documentation
 Install
 =======
 
-acfx can be installed from either `PyPI <https://pypi.org/project/acfx>`_ or directly from source code `GitHub <https://github.com/sbobek/acfx>`_
+**acfx** package can be installed from either `PyPI <https://pypi.org/project/acfx>`_ or directly from source code `GitHub <https://github.com/sbobek/acfx>`_
 
 To install form PyPI::
 
