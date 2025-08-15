@@ -255,3 +255,4 @@ zope.event==5.0
 zope.interface==7.2
 pytest~=8.3.4
 pytest-cov
+streamlit==1.48.0
