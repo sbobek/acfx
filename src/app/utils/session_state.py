@@ -10,6 +10,8 @@ def load_value(key):
         st.session_state[key] = None
 
 def init_session_state():
+    if "feature_types" not in st.session_state:
+        st.session_state.feature_types = None
     if "X" not in st.session_state:
         st.session_state.X = None
     if "y" not in st.session_state:
