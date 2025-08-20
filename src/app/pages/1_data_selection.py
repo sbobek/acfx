@@ -46,6 +46,24 @@ def set_feature_types(data_instances, feature_names):
             feature_types.append({'Column Name': col, 'Type': 'nominal'})
     st.session_state.feature_types = pd.DataFrame(feature_types)
 
+def init_session_state():
+    if "feature_types" not in st.session_state:
+        st.session_state.feature_types = None
+    if "X" not in st.session_state:
+        st.session_state.X = None
+    if "y" not in st.session_state:
+        st.session_state.y = None
+    if "data" not in st.session_state:
+        st.session_state.data = None
+    if "data_loaded" not in st.session_state:
+        st.session_state.data_loaded = False
+    if "data_source_name" not in st.session_state:
+        st.session_state.data_source_name = None
+    if 'label_column' not in st.session_state:
+        st.session_state.label_column = None
+
+
+init_session_state()
 st.title("🔍 Wybierz dane")
 
 load_value('source'); st.radio("Źródło danych:", ["Wbudowane", "Plik CSV"], key="_source", on_change=store_value, args=['source'])
