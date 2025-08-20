@@ -8,21 +8,3 @@ def load_value(key, default_value=None):
     else:
         st.session_state["_"+key] = default_value
         st.session_state[key] = default_value
-
-def init_session_state():
-    if "feature_types" not in st.session_state:
-        st.session_state.feature_types = None
-    if "X" not in st.session_state:
-        st.session_state.X = None
-    if "y" not in st.session_state:
-        st.session_state.y = None
-    if "data" not in st.session_state:
-        st.session_state.data = None
-    if "data_loaded" not in st.session_state:
-        st.session_state.data_loaded = False
-    if "data_source_name" not in st.session_state:
-        st.session_state.data_source_name = None
-    if 'label_column' not in st.session_state:
-        st.session_state.label_column = None
-    if 'classifier' not in st.session_state:
-        st.session_state.classifier = None
