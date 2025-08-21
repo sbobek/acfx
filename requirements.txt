@@ -222,7 +222,7 @@ statsmodels==0.14.4
 sympy==1.13.3
 tensorboard==2.18.0
 tensorboard-data-server==0.7.2
-tensorflow[and-cuda]==2.18.0
+tensorflow==2.14.0
 tensorflow-estimator==2.14.0
 tensorflow-io-gcs-filesystem==0.37.1
 termcolor==2.5.0
