@@ -1,5 +1,5 @@
-from gpdatagenerator import *
-from distance_functions import *
+from .gpdatagenerator import *
+from .distance_functions import *
 
 from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import CondensedNearestNeighbour

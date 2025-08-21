@@ -23,8 +23,10 @@ def set_session():
     keras_backend.set_session(sess)
 
 def set_model_path():
-    sys.path.append('./acfx/model/LORE')
-    sys.path.append('./acfx/model')
+    import os
+    cwd = os.getcwd()
+    sys.path.append(f'{cwd}/acfx/benchmark/model/LORE')
+    sys.path.append(f'{cwd}/acfx/benchmark/model')
 
 def evaluate(use_suite:bool, time_limit:int, model_time_limit:int):
     suite = openml.study.get_suite(99)

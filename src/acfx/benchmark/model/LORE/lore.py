@@ -9,11 +9,11 @@ List of changes:
     - Modifying the coverage criteria in "is_satisfied" function
 """
 
-import pyyadt
+from . import pyyadt
 import random
 
-from neighbor_generator import *
-from gpdatagenerator import calculate_feature_values
+from .neighbor_generator import *
+from .gpdatagenerator import calculate_feature_values
 
 
 def explain(idx_record2explain, X2E, dataset, blackbox,

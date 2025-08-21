@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import networkx as nx
 
-from util import *
+from .util import *
 
 from collections import defaultdict
 
@@ -16,11 +16,12 @@ def fit(df, class_name, columns, features_type, discrete, continuous,
         filename='yadt_dataset', path='./', sep=';', log=False, depth=None):
     if depth is None:
         depth=len(columns)
-    
-    data_filename = path + filename + '.data'
-    names_filename = path + filename + '.names'
-    tree_filename = path + filename + '.dot'
-    
+    import os
+    cwd = os.getcwd()
+    cwd_with_path = cwd + '/' + path
+    data_filename = cwd_with_path+ filename + '.data'
+    names_filename = cwd_with_path + filename + '.names'
+    tree_filename = cwd_with_path + filename + '.dot'
     df.to_csv(data_filename, sep=sep, header=False, index=False)
     
     names_file = open(names_filename, 'w')
@@ -30,10 +31,13 @@ def fit(df, class_name, columns, features_type, discrete, continuous,
         disc_cont = 'class' if col == class_name else disc_cont 
         names_file.write('%s%s%s%s%s\n' % (col, sep, col_type, sep, disc_cont))
     names_file.close()
-    
-    cmd = './acfx/model/LORE/yadt/dTcmd -fd %s -fm %s -sep %s -d %s' % (
-        data_filename, names_filename, sep, tree_filename)
-    output = subprocess.check_output(cmd.split(), stderr=subprocess.STDOUT)
+
+    env = os.environ.copy()
+    env['LD_LIBRARY_PATH'] = cwd_with_path
+    # cmd = 'LD_LIBRARY_PATH={cwd}/{path} {cwd}/{path}dTcmd -fd %s -fm %s -sep %s -d %s' % (
+    #     data_filename, names_filename, sep, tree_filename)
+    cmd = f'{cwd}/{path}dTcmd -fd {data_filename} -fm {names_filename} -sep {sep} -d {tree_filename}'
+    output = subprocess.check_output(cmd.split(), stderr=subprocess.STDOUT, env=env)
     # cmd = r"dTcmd -fd %s -fm %s -sep '%s' -d %s" % (
     #     data_filename, names_filename, sep, tree_filename)
     # cmd = r'noah "%s"' % cmd

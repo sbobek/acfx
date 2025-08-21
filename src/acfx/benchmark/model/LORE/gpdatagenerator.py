@@ -2,7 +2,7 @@ import math
 import warnings
 import scipy.stats as st
 
-from util import *
+from .util import *
 from deap import base, creator, tools, algorithms
 
 
