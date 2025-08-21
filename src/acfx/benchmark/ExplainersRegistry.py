@@ -12,14 +12,15 @@ from lux.lux import LUX
 from sklearn.model_selection import train_test_split
 from tensorflow.python.keras import backend as keras_backend
 
+from ..evaluation.multi_dataset_evaluation import DEFAULT_ERROR_LOG_PATH
+from ..evaluation.ccfs import generate_cfs
+
 from .model import Dice
-from src.acfx.evaluation.ccfs import generate_cfs
-from src.acfx.evaluation.EBMCounterOptimizer import EBMCounterOptimizer
+from ..evaluation.EBMCounterOptimizer import EBMCounterOptimizer
 from .model.LORE import lore
 from .model.LORE.neighbor_generator import genetic_neighborhood
-from .tools.utils import prepare_ds_lore
+from .tools.utils import prepare_ds_lore, log2file
 from alibi.explainers import CounterfactualProto
-from alibi.explainers import Counterfactual
 
 class ExplainersRegistry:
     def __init__(self, model_clf, causal_model, dataset, num_cfs, stats, time_limit=1800, n_iter=100, init_points=500):
@@ -38,21 +39,22 @@ class ExplainersRegistry:
         self.recipes = {}
         self.register_explainer('CCF', self._method_ccf)
         self.register_explainer('CCF-no-causal', self._method_ccf_no_causal)
-        # self.register_explainer('Dice', self._method_dice)
-        # self.register_explainer('Baseline', self._method_baseline)
-        # self.register_explainer('LUX', self._method_lux)
-        # self.register_explainer('LORE', self._method_lore)
-        # self.register_explainer('CEM', self._method_cem)
-        # self.register_explainer('CFProto', self._method_protocf)
-        # self.register_explainer('Wachter', self._method_wachter)
-        # self.register_explainer('cfnow', self._method_cfnow)
+        self.register_explainer('Baseline', self._method_baseline)
+        self.register_explainer('Dice', self._method_dice)
+        self.register_explainer('LUX', self._method_lux)
+        self.register_explainer('LORE', self._method_lore)
+        self.register_explainer('CEM', self._method_cem)
+
+        self.register_explainer('CFProto', self._method_protocf)
+        self.register_explainer('Wachter', self._method_wachter)
+        self.register_explainer('cfnow', self._method_cfnow)
 
     def _method_baseline(self):
         ebcf = EBMCounterOptimizer(self.model_clf,
                                    pd.DataFrame(self.explain_instance.reshape(1, -1), columns=self.ds.features))
         cfs = []
         for i in range(self.num_cfs):
-            proba, cf = ebcf.optimize_proba(self.desired_class, feature_masked=self.ds.features)
+            cf = ebcf.optimize_proba(self.desired_class, feature_masked=self.ds.features)
             cfs.append(cf)
         return pd.DataFrame(cfs).values
 
@@ -104,6 +106,8 @@ class ExplainersRegistry:
         if explanation['PN'] is not None:
             cfs = [explanation['PN'].ravel() for _ in range(self.num_cfs)]
         else:
+            print('CEM did not return any CF')
+            log2file('CEM did not return any CF')
             raise Exception('No CF found')
         return cfs
 
@@ -138,6 +142,8 @@ class ExplainersRegistry:
         if explanation['cf'] is not None:
             cfs = [explanation['cf']['X'].ravel()]
         else:
+            print('Protocf did not return any CF')
+            log2file('Protocf did not return any CF')
             raise Exception('No CF found')
         return cfs
 
@@ -163,6 +169,8 @@ class ExplainersRegistry:
         if explanation['cf'] is not None:
             cfs = [explanation['cf']['X'].ravel()]
         else:
+            print('Wachter did not return results')
+            log2file('Wachter did not return results')
             raise Exception('No CF found')
         return cfs
 
@@ -190,8 +198,13 @@ class ExplainersRegistry:
     def _method_dice(self):
         hyperparams = {"num": self.num_cfs, "desired_class": int(self.desired_class), "posthoc_sparsity_param": 0.1}
         dice = Dice(self.model_clf, data=self.ds, hyperparams=hyperparams)
-
-        return dice.get_counterfactuals(pd.DataFrame([self.explain_instance], columns=self.ds.features)).values
+        try:
+            return dice.get_counterfactuals(pd.DataFrame([self.explain_instance], columns=self.ds.features)).values
+        except Exception as e:
+            print(f'DICE failed with exception: {e}')
+            stack_trace = traceback.format_exc()
+            log2file(f'DICE failed with exception: {e}. Stack trace: {stack_trace}', filepath=DEFAULT_ERROR_LOG_PATH)
+            raise
 
     def _method_cfnow(self):
         try:
@@ -226,20 +239,29 @@ class ExplainersRegistry:
                                                ng_function=genetic_neighborhood,
                                                discrete_use_probabilities=True,
                                                continuous_function_estimation=False,
-                                               returns_infos=True, path='model/LORE/yadt/',
+                                               returns_infos=True, path='benchmark/model/LORE/yadt/',
                                                sep=';', log=True, depth=100)
         except:
-            # Try numerical only
-            myds = prepare_ds_lore(Xtr, class_name=self.ds.target_class)
-            X_explain = np.concatenate((self.explain_instance.reshape(1, -1), myds['X']))
-            exp_LORE, info_LORE = lore.explain(0, X_explain,
-                                               myds, self.model_clf,
-                                               ng_function=genetic_neighborhood,
-                                               discrete_use_probabilities=True,
-                                               continuous_function_estimation=False,
-                                               returns_infos=True, path='model/LORE/yadt/',
-                                               sep=';', log=True, depth=100)
-
+            try:
+                # Try numerical only
+                myds = prepare_ds_lore(Xtr, class_name=self.ds.target_class)
+                X_explain = np.concatenate((self.explain_instance.reshape(1, -1), myds['X']))
+                exp_LORE, info_LORE = lore.explain(0, X_explain,
+                                                   myds, self.model_clf,
+                                                   ng_function=genetic_neighborhood,
+                                                   discrete_use_probabilities=True,
+                                                   continuous_function_estimation=False,
+                                                   returns_infos=True, path='benchmark/model/LORE/yadt/',
+                                                   sep=';', log=True, depth=100)
+            except Exception as e:
+                print(f'LORE failed with exception: {e}')
+                stack_trace = traceback.format_exc()
+                log2file(f'LORE failed with exception: {e}. Stack trace: {stack_trace}', DEFAULT_ERROR_LOG_PATH)
+                raise
+        if len(exp_LORE) < 2 or len(exp_LORE[1]) < 1:
+            print('LORE did not return results')
+            log2file('LORE did not return results')
+            raise Exception('No CF found')
         query = ' & '.join(
             [f'({str(a)} {str(b)})' if str(a) not in str(b) else f'({b})' for a, b in exp_LORE[1][0].items()])
         cfs = Xtr.query(query)
