@@ -27,6 +27,14 @@ def init_classifier():
             classifier = KNeighborsClassifier(**params)
         elif st.session_state.classifier_name == classifier_list[3]:
             classifier = ExplainableBoostingClassifier(**params)
+        else:
+            raise IndexError("classifier_name out of range")
+        if st.session_state.X is None:
+            raise ValueError("Data for classifier fit is not available (st.session_state.X)")
+        if st.session_state.y is None:
+            raise ValueError("Data for classifier fit is not available (st.session_state.y)")
+        classifier = classifier.fit(st.session_state.X,st.session_state.y)
+
     st.session_state.classifier_instance = classifier
 
 def init_classifier_params():

@@ -3,7 +3,6 @@ from pandas.core.dtypes.common import is_numeric_dtype, is_categorical_dtype
 from sklearn.datasets import load_iris, load_wine, load_diabetes
 import streamlit as st
 from utils.session_state import load_value, store_value
-from utils.const import SELECT_BUTTON
 
 def show_dane_wejsciowe():
     load_value('data_loaded')
@@ -16,17 +15,29 @@ def show_dane_wejsciowe():
         st.subheader("Typy kolumn")
         updated_types = []
         for i, row in st.session_state.feature_types.iterrows():
-            key = f"type_select_{i}"
+            key_type_select = f"type_select_{i}"
             selected_type = st.selectbox(
                 row['Column Name'],
                 options=["continous", "nominal"],
                 index=0 if row['Type'] == "continous" else 1,
-                key=key
+                key=key_type_select
             )
-            updated_types.append({
-                "Column Name": row["Column Name"],
-                "Type": selected_type
-            })
+            key_is_on_select = f"is_on_{i}"
+            if st.session_state.label_column is not None and row["Column Name"] == st.session_state.label_column:
+                updated_types.append({
+                    "Column Name": row["Column Name"],
+                    "Type": selected_type,
+                    "is_on": True
+                })
+            else:
+                if key_is_on_select not in st.session_state:
+                    st.session_state[key_is_on_select] = row['is_on']
+                is_on = st.checkbox(label=f"**{row['Column Name']}** is available for evaluation", key=key_is_on_select)
+                updated_types.append({
+                    "Column Name": row["Column Name"],
+                    "Type": selected_type,
+                    "is_on": is_on
+                })
         st.session_state.feature_types = pd.DataFrame(updated_types)
 
 
@@ -41,9 +52,9 @@ def set_feature_types(data_instances, feature_names):
     feature_types = []
     for col in feature_names:
         if is_numeric_dtype(data_instances[col]):
-            feature_types.append({'Column Name': col, 'Type': 'continous'})
+            feature_types.append({'Column Name': col, 'Type': 'continous', "is_on": True})
         else:
-            feature_types.append({'Column Name': col, 'Type': 'nominal'})
+            feature_types.append({'Column Name': col, 'Type': 'nominal', "is_on": True})
     st.session_state.feature_types = pd.DataFrame(feature_types)
 
 def init_session_state():
@@ -62,16 +73,30 @@ def init_session_state():
     if 'label_column' not in st.session_state:
         st.session_state.label_column = None
 
+def clear_features_session_state():
+    if st.session_state.feature_types is not None:
+        for i, row in st.session_state.feature_types.iterrows():
+            key_type_select = f"type_select_{i}"
+            key_is_on_select = f"is_on_{i}"
+            if key_is_on_select in st.session_state:
+                del st.session_state[key_is_on_select]
+            if key_type_select in st.session_state:
+                del st.session_state[key_type_select]
+        st.session_state.feature_types = None
+
+def data_source_changed(data_source_name):
+    clear_features_session_state()
+    store_value(data_source_name)
 
 init_session_state()
 st.title("🔍 Wybierz dane")
 
-load_value('source'); st.radio("Źródło danych:", ["Wbudowane", "Plik CSV"], key="_source", on_change=store_value, args=['source'])
+load_value('source'); st.radio("Źródło danych:", ["Wbudowane", "Plik CSV"], key="_source", on_change=data_source_changed, args=['source'])
 if st.session_state.source == "Wbudowane":
     st.session_state.label_column = None
     st.session_state.data_loaded = False
     load_value('data_source_name'); st.radio("Zbiór danych:", ['iris', 'wine', 'diabetes'],
-             key='_data_source_name', on_change=store_value, args=['data_source_name'])
+                                             key='_data_source_name', on_change=data_source_changed, args=['data_source_name'])
     data = None
     if st.session_state.data_source_name == 'iris':
         data = load_iris(as_frame=True)
@@ -90,7 +115,7 @@ if st.session_state.source == "Wbudowane":
 
 
 elif st.session_state.source == "Plik CSV":
-    uploaded_file = st.file_uploader("Załaduj plik CSV", type=["csv"])
+    uploaded_file = st.file_uploader("Załaduj plik CSV", type=["csv"], on_change=clear_features_session_state)
     if not st.session_state.data_loaded or st.session_state.data_source_name is not None:
         data = None
         X = None
