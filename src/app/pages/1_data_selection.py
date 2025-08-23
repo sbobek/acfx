@@ -18,8 +18,8 @@ def show_dane_wejsciowe():
             key_type_select = f"type_select_{i}"
             selected_type = st.selectbox(
                 row['Column Name'],
-                options=["continous", "nominal"],
-                index=0 if row['Type'] == "continous" else 1,
+                options=["continuous", "nominal", "ordinal"],
+                index=0 if row['Type'] == "continuous" else 1,
                 key=key_type_select
             )
             key_is_on_select = f"is_on_{i}"
@@ -52,7 +52,7 @@ def set_feature_types(data_instances, feature_names):
     feature_types = []
     for col in feature_names:
         if is_numeric_dtype(data_instances[col]):
-            feature_types.append({'Column Name': col, 'Type': 'continous', "is_on": True})
+            feature_types.append({'Column Name': col, 'Type': 'continuous', "is_on": True})
         else:
             feature_types.append({'Column Name': col, 'Type': 'nominal', "is_on": True})
     st.session_state.feature_types = pd.DataFrame(feature_types)
