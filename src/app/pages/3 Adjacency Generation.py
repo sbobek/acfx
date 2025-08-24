@@ -1,7 +1,5 @@
 import streamlit as st
 import lingam
-from sklearn.datasets import load_iris
-from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import networkx as nx
 from streamlit_sortables import sort_items
@@ -10,7 +8,6 @@ def train_causal_model(X):
     causal_model = lingam.DirectLiNGAM()
     causal_model.fit(X)
     return causal_model
-
 
 def generate_adjacency(graph, fig, ax):
     pos = nx.spring_layout(graph, k=15)
