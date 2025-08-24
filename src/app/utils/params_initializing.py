@@ -28,7 +28,7 @@ def init_randomforest_params():
 
     load_value('rf_min_samples_split', 2.0)
     st.number_input(
-        label="min_samples_split",
+        label="min_samples_split (must be float in range (0,1] or int in range [2,inf))",
         min_value=0.0,
         format="%.3f",
         step=0.01,
@@ -38,7 +38,7 @@ def init_randomforest_params():
 
     load_value('rf_min_samples_leaf', 1.0)
     st.number_input(
-        label="min_samples_leaf",
+        label="min_samples_leaf (must be either float in range (0,1) or int in range [1,inf))",
         min_value=0.0,
         format="%.3f",
         step=0.01,
@@ -98,12 +98,23 @@ def init_randomforest_params():
         max_leaf_nodes = st.session_state.rf_max_leaf_nodes
         if max_leaf_nodes is 0:
             max_leaf_nodes = None
+        min_samples_leaf = st.session_state.rf_min_samples_leaf
+
+        if min_samples_leaf >= 1:
+            min_samples_leaf = int(min_samples_leaf)
+            st.session_state.rf_min_samples_leaf = min_samples_leaf
+
+        min_samples_split = st.session_state.rf_min_samples_split
+        if min_samples_split >= 1:
+            min_samples_split = int(min_samples_split)
+            st.session_state.rf_min_samples_split = min_samples_split
+
         st.session_state.classifier_params = {
             'n_estimators': st.session_state.rf_n_estimators,
             'criterion': st.session_state.rf_criterion,
             'max_depth': max_depth,
-            'min_samples_split': st.session_state.rf_min_samples_split,
-            'min_samples_leaf': st.session_state.rf_min_samples_leaf,
+            'min_samples_split': min_samples_split,
+            'min_samples_leaf': min_samples_leaf,
             'min_weight_fraction_leaf': st.session_state.rf_min_weight_fraction_leaf,
             'max_features': max_features,
             'max_leaf_nodes': max_leaf_nodes,
