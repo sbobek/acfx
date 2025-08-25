@@ -14,7 +14,7 @@ def show_dane_wejsciowe():
         st.subheader("🏷️ Labels")
         st.dataframe(st.session_state.y)
     if st.session_state.feature_types is not None:
-        st.subheader("Typy kolumn")
+        st.subheader("Column types")
         updated_types = []
         for i, row in st.session_state.feature_types.iterrows():
             key_type_select = f"type_select_{i}"
@@ -97,6 +97,16 @@ def delete_future_session_state():
         del st.session_state['classifier_params']
     if 'data_loaded' in st.session_state:
         st.session_state.data_loaded = False
+    if 'adjacency_matrix' in st.session_state:
+        del st.session_state['adjacency_matrix']
+    if 'casual_order' in st.session_state:
+        del st.session_state['casual_order']
+    if 'pbounds' in st.session_state:
+        del st.session_state['pbounds']
+
+    pbounds_is_masked_to_delete = [key for key in st.session_state.keys() if key.endswith('_pbounds') or key.endswith('_is_masked')]
+    for key in pbounds_is_masked_to_delete:
+        del st.session_state[key]
 
 def data_source_changed(data_source_name):
     clear_features_session_state()
