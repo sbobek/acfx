@@ -6,11 +6,11 @@ st.title("👋 Welcome to the ACFX Counterfactual Discovery App")
 # Description
 st.markdown("""
 Welcome to your interactive tool for exploring **counterfactuals** using ACFX API.
-
-This app is designed to help you experiment with the API in user-friendly environment.
 ---
 
-🧪 **Next Steps**  
+This app is designed to help you experiment with the ACFX API in user-friendly environment.
+
+🧪 **First Steps**  
 Use the sidebar to navigate to:
 - **Data Selection**: Load your dataset.
 - **Classifier Selection**: Choose a predictive model.
@@ -24,3 +24,14 @@ Start by selecting your data.
 # Footer
 st.markdown("---")
 st.caption("Developed by Piotr Kubacki (piotr.kubacki@student.uj.edu.pl) · Powered by Streamlit")
+
+
+# Numeric interval using slider
+start, end = st.slider(
+    "Select a numeric interval",
+    min_value=0,
+    max_value=100,
+    value=(25, 75)
+)
+
+st.write(f"Selected interval: {start} to {end}")
