@@ -1,14 +1,12 @@
 import numpy as np
+import pandas as pd
 import streamlit as st
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from interpret.glassbox import ExplainableBoostingClassifier
 from sklearn.neighbors import KNeighborsClassifier
-
-from ACFX import ACFX
-from AcfxLinear import AcfxLinear
-from AcfxEBM import AcfxEBM
-from src.acfx import AcfxCustom
+from utils.session_state import store_value, load_value
+from acfx import AcfxCustom, AcfxEBM, AcfxLinear, ACFX
 from utils.key_helper import get_pbounds_key
 
 def get_pbounds() -> dict[str,tuple[float,float]]:
@@ -21,12 +19,17 @@ def get_masked_features() -> list[str]:
                             if key.endswith(suffix) and st.session_state[key] == True]
     return [feature_masked[:-len(suffix)] for feature_masked in masked_features_keys]
 
+def get_all_columns() -> list[str]:
+    return st.session_state.selected_X.columns
+
 def get_categorical_indicator() -> list[bool]:
     is_categorical = {row['Column Name']: row['Type'] != 'continuous'  for _, row in st.session_state.feature_types.iterrows()}
     assert st.session_state.data.columns == list(is_categorical.keys())
-    return [is_categorical[feature_name] for feature_name in st.session_state.X.columns]
+    return [is_categorical[feature_name] for feature_name in get_all_columns()]
 
-def get_acfx():
+
+@st.cache_resource
+def get_acfx() -> ACFX:
     classifier_instance = st.session_state.classifier_instance
     if isinstance(classifier_instance, LogisticRegression):
         acfx = AcfxLinear(classifier_instance)
@@ -39,7 +42,9 @@ def get_acfx():
         raise ValueError("classifier_instance out of range")
     return acfx
 
-def fit_acfx(acfx:ACFX, query_instance) -> ACFX:
+@st.cache_resource
+def fit_acfx() -> ACFX:
+    acfx_instance = get_acfx()
     adjacency_matrix = None
     casual_order = None
     if 'adjacency_matrix' in st.session_state and st.session_state.adjacency_matrix is not None:
@@ -58,17 +63,65 @@ def fit_acfx(acfx:ACFX, query_instance) -> ACFX:
     elif 'feature_types' not in st.session_state or st.session_state.feature_types is None:
         raise KeyError('feature_types must be initialized in session state here')
 
-    return acfx.fit(X = st.session_state.selected_X, query_instance=query_instance, adjacency_matrix=adjacency_matrix,
-             casual_order=casual_order,
-             pbounds=get_pbounds(), y=st.session_state.y,
-             masked_features=get_masked_features(),
-             categorical_indicator=get_categorical_indicator(),
-             features_order=st.session_state.casual_order)
+    return acfx_instance.fit(X = st.session_state.selected_X, adjacency_matrix=adjacency_matrix,
+                             casual_order=casual_order,
+                             pbounds=get_pbounds(), y=st.session_state.y,
+                             masked_features=get_masked_features(),
+                             categorical_indicator=get_categorical_indicator(),
+                             features_order=st.session_state.casual_order)
+
+def show_desired_class_input():
+    if 'target_names' in st.session_state.data:
+        assert len(st.session_state.classifier_instance.classes_) == len(st.session_state.data.target_names)
+        target_class_list = st.session_state.data.target_names
+    else:
+        target_class_list = st.session_state.classifier_instance.classes_
+    load_value('desired_class'); st.selectbox("Target:", target_class_list, key="_desired_class", on_change=store_value, args=['desired_class'])
+
+def show_how_many_cfs_per_query_instance():
+    load_value('num_counterfactuals')
+    st.number_input(
+        label="Num of counterfactuals generated per query instance",
+        min_value=1,
+        max_value=10,
+        format="%d",
+        step=1,
+        key="_num_counterfactuals",
+        on_change=store_value, args=['num_counterfactuals']
+    )
+
+def show_init_points_choice():
+    load_value('init_points',10)
+    st.number_input(
+        label="Number of initial points for Bayesian Optimization",
+        min_value=1,
+        format="%d",
+        step=1,
+        key="_init_points",
+        on_change=store_value, args=['init_points']
+    )
+
+def show_n_iter_choice():
+    load_value('n_iter',100)
+    st.number_input(
+        label="Number of iterations for Bayesian Optimization",
+        min_value=1,
+        format="%d",
+        step=1,
+        key="_n_iter",
+        on_change=store_value, args=['n_iter']
+    )
+
+def show_sampling_from_model_choice():
+    load_value('sampling_from_model',True)
+    st.checkbox("Sampling from model",
+                key="_sampling_from_model", on_change=store_value, args=['sampling_from_model'])
 
 
-    # def fit(self, X, query_instance: np.ndarray, adjacency_matrix:Optional[np.ndarray], casual_order:Optional[Sequence[int]],
-    #         pbounds:Dict[str, Tuple[float, float]],y=None, masked_features:Optional[List[str]] = None,
-    #         categorical_indicator:Optional[List[bool]] =None, features_order:Optional[List[str]] =None):
+show_desired_class_input()
+show_how_many_cfs_per_query_instance()
+show_init_points_choice()
+show_n_iter_choice()
 
 if 'proximity_weight' not in st.session_state \
     or 'diversity_weight' not in st.session_state \
@@ -79,24 +132,37 @@ else:
         raise ValueError('classifier_name must be in session state')
     if 'classifier_instance' not in st.session_state or st.session_state.classifier_instance is None:
         raise ValueError('classifier_instance must be in session state')
-    query_instance = st.data_editor(
-        st.session_state.df,
-        num_rows=1,
-        use_container_width=True
+    query_instances = st.data_editor(
+        data=pd.DataFrame([0] * len(get_all_columns()), index=get_all_columns()).T,
+        num_rows='dynamic',
+        use_container_width=True,
+        on_change=store_value,
     )
-    acfx = get_acfx()
-    if st.checkbox(label="EVALUATE"):
-        if query_instance is None:
+    is_button_disabled = query_instances is None
+    if st.button("EVALUATE", disabled=is_button_disabled):
+        if query_instances is None:
             st.warning("⚠️ Query instance must be provided first")
+        elif 'desired_class' not in st.session_state or st.session_state.desired_class is None:
+            st.warning("⚠️ Choose desired class first")
         else:
-            acfx = fit_acfx(acfx,query_instance)
-            acfx.counterfactual(desired_class=?, )
+            st.info(f"query instance:{query_instances}")
+            acfx = fit_acfx()
+            cfs=[]
+            for i, query_instance in query_instances.iterrows():
+                cf = acfx.counterfactual(
+                                 query_instance=query_instance,
+                                 desired_class=st.session_state.desired_class,
+                                 num_counterfactuals=st.session_state.num_counterfactuals,
+                                 proximity_weight=st.session_state.proximity_weight,
+                                 plausibility_weight=st.session_state.plausibility_loss,
+                                 diversity_weight=st.session_state.diversity_weight,
+                                 init_points=st.session_state.init_points,
+                                 n_iter=st.session_state.n_iter,
+                                 sampling_from_model=st.session_state.sampling_from_model)
 
-
-            # def counterfactual(self, desired_class: int, num_counterfactuals: int = 1, proximity_weight: float = 1,
-            #                    sparsity_weight: float = 1, plausibility_weight: float = 0, diversity_weight: float = 1,
-            #                    init_points: int = 10,
-            #                    n_iter: int = 1000, sampling_from_model: bool = True) -> np.ndarray:
+                cfs.append(cf)
+            st.text("RESULT:")
+            st.info(cfs)
 
 
 

@@ -7,12 +7,13 @@ if 'classifier_name' not in st.session_state or st.session_state.classifier_name
     st.warning("⚠️ Start by initializing classifier in 'Classifier selection'")
 elif 'plausibility_loss_on' not in st.session_state or st.session_state.plausibility_loss_on is None:
     st.warning("⚠️ Start by visiting 'Adjacency Generation'")
-elif st.session_state.plausibility_loss_on and 'adjacency_matrix' not in st.session_state or st.session_state.adjacency_matrix is None:
+elif st.session_state.plausibility_loss_on \
+      and ('adjacency_matrix' not in st.session_state or st.session_state.adjacency_matrix is None):
     st.warning("⚠️ Start by initializing adjacency matrix in 'Adjacency Generation'")
 else:
     if st.session_state.selected_X is None:
         raise ValueError("selected_X must be initialized in session state")
-    initial_pbounds = calc_pbounds(st.session_state.selected_X).update(calc_pbounds(st.session_state.y))
+    initial_pbounds = calc_pbounds(st.session_state.selected_X)
     load_value('pbounds', initial_pbounds)
     st.subheader("The bounds for each feature to search over")
     for feature_name, interval in st.session_state.pbounds.items():
@@ -38,7 +39,8 @@ else:
         load_value('plausibility_loss', 0.5)
         st.slider(label="Plausibility loss weight", key="_plausibility_loss",
                   min_value=0.0, max_value=1., step=0.05, on_change=store_value, args=['plausibility_loss'])
-
+    else:
+        st.session_state.plausibility_loss = 0
     load_value('proximity_weight', 0.5)
     st.slider(label="Proximity loss weight", key="_proximity_weight",
               min_value=0.0, max_value=1., step=0.05, on_change=store_value, args=['proximity_weight'])
