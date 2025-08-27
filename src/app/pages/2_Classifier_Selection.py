@@ -24,7 +24,8 @@ def init_classifier():
     params = st.session_state.classifier_params
     selected_feature_labels = [item["Column Name"] for _, item in st.session_state.feature_types.iterrows()
                                if item["is_on"] and item["Column Name"] in st.session_state.X.columns]
-    selected_feature_types = [item["Type"] for _, item in st.session_state.feature_types.iterrows() if item["is_on"]]
+    selected_feature_types = [item["Type"] for _, item in st.session_state.feature_types.iterrows()
+                              if item["is_on"] and item["Column Name"] in selected_feature_labels]
     st.session_state.selected_X = st.session_state.X[selected_feature_labels]
     if params is not None:
         if st.session_state.classifier_name == classifier_list[0]:

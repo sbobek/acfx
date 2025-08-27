@@ -1,8 +1,9 @@
-# streamlit_app: 📂 Data Upload
-
 import pandas as pd
 from pandas.core.dtypes.common import is_numeric_dtype, is_categorical_dtype
-from sklearn.datasets import load_iris, load_wine, load_diabetes
+from sklearn.datasets import (load_iris, load_wine,
+                              # load_digits,
+                              load_breast_cancer)
+# from sklearn.datasets import load_diabetes
 import streamlit as st
 from utils.session_state import load_value, store_value
 
@@ -12,7 +13,10 @@ def show_dane_wejsciowe():
         st.subheader("📈 Input data")
         st.dataframe(st.session_state.X)
         st.subheader("🏷️ Labels")
-        st.dataframe(st.session_state.y)
+        if 'target_names' in st.session_state.data:
+            st.dataframe(st.session_state.y.map(lambda x: st.session_state.data.target_names[x]))
+        else:
+            st.dataframe(st.session_state.y)
     if st.session_state.feature_types is not None:
         st.subheader("Column types")
         updated_types = []
@@ -115,19 +119,25 @@ def data_source_changed(data_source_name):
 init_session_state()
 st.title("🔍 Select data")
 
-load_value('source'); st.radio("Data source:", ["Builtin", "Plik CSV"], key="_source", on_change=data_source_changed, args=['source'])
+load_value('source'); st.radio("Data source:", ["Builtin", "CSV file"], key="_source", on_change=data_source_changed, args=['source'])
 if st.session_state.source == "Builtin":
     st.session_state.label_column = None
     st.session_state.data_loaded = False
-    load_value('data_source_name'); st.radio("Dataset:", ['iris', 'wine', 'diabetes'],
+    load_value('data_source_name'); st.radio("Dataset:", ['iris', 'wine',  'breast cancer',
+                                                          # ,'diabetes', 'digits'
+                                                          ],
                                              key='_data_source_name', on_change=data_source_changed, args=['data_source_name'])
     data = None
     if st.session_state.data_source_name == 'iris':
         data = load_iris(as_frame=True)
     elif st.session_state.data_source_name == 'wine':
         data = load_wine(as_frame=True)
-    elif st.session_state.data_source_name == 'diabetes':
-        data = load_diabetes(as_frame=True)
+    # elif st.session_state.data_source_name == 'digits':
+    #     data = load_digits(as_frame=True)
+    elif st.session_state.data_source_name == 'breast cancer':
+        data = load_breast_cancer(as_frame=True)
+    # elif st.session_state.data_source_name == 'diabetes':
+    #     data = load_diabetes(as_frame=True)
 
     if st.session_state.data_source_name is not None:
         X = data.data
@@ -139,6 +149,9 @@ if st.session_state.source == "Builtin":
 
 
 elif st.session_state.source == "CSV file":
+    st.info(
+        "Please preprocess your data to meet the classifier's fit() requirements. "
+        "Without preprocessing, fitting may fail depending on the classifier.")
     uploaded_file = st.file_uploader("Load CSV", type=["csv"], on_change=clear_features_session_state)
     if not st.session_state.data_loaded or st.session_state.data_source_name is not None:
         data = None
