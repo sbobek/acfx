@@ -76,11 +76,11 @@ def test_custom_cfx_optimizer(sample_data):
 
     causal_order = list(range(len(features_order)))
 
-    explainer.fit(X=X_train, query_instance=query_instance, adjacency_matrix=adjacency_matrix,
+    explainer.fit(X=X_train, adjacency_matrix=adjacency_matrix,
                   casual_order=causal_order, pbounds=pbounds,
                   features_order=features_order, optimizer=optimizer, masked_features=feature_masked)
 
-    cf = explainer.counterfactual(desired_class=desired_class)
+    cf = explainer.counterfactual(desired_class=desired_class, query_instance=query_instance)
 
     cfs_casual_penalty = compute_causal_penalty(cf, adjacency_matrix, causal_order)
 

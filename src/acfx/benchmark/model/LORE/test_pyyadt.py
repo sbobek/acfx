@@ -80,15 +80,15 @@ def main():
                                            discrete, continuous)
 
     idx_record2explain = 11
-    print dfZ.to_dict('records')[idx_record2explain]
+    print (dfZ.to_dict('records')[idx_record2explain])
     cc_outcome, rule, tree_path = pyyadt.predict_rule(dt, dfZ.to_dict('records')[idx_record2explain],
                                                       class_name, features_type, discrete, continuous)
 
-    print cc_outcome
-    print rule
-    print tree_path
+    print (cc_outcome)
+    print (rule)
+    print (tree_path)
 
-    print pyyadt.get_covered_record_index(tree_path, leaf_nodes)[:10]
+    print (pyyadt.get_covered_record_index(tree_path, leaf_nodes)[:10])
 
 
 if __name__ == "__main__":
