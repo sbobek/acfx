@@ -82,7 +82,7 @@ Initialize all the prepared data
 
 
     features_order = X_train.columns.tolist()
-    explainer.fit(X=X_train, query_instance=query_instance, adjacency_matrix=adjacency_matrix, casual_order=causal_order, pbounds=pbounds,
+    explainer.fit(X=X_train, adjacency_matrix=adjacency_matrix, casual_order=causal_order, pbounds=pbounds,
                   y=y_train, features_order=features_order)
 
 Generate Counterfactuals
@@ -94,7 +94,7 @@ To generate counterfactual explanations for a given instance:
 
     original_class = model.predict([query_instance])[0]
 
-    cf = explainer.counterfactual(desired_class=original_class)
+    cf = explainer.counterfactual(desired_class=original_class, query_instance=query_instance)
     print(counterfactuals)
 
 
@@ -148,5 +148,5 @@ Below I prepared an example custom optimizer
     optimizer = SomeCustomCounterOptimizer(model, X_test, pbounds)
 
     explainer = AcfxCustom(model)
-    explainer.fit(X=X_train, query_instance=query_instance, adjacency_matrix=adjacency_matrix, casual_order=causal_order, pbounds=pbounds,
+    explainer.fit(X=X_train, adjacency_matrix=adjacency_matrix, casual_order=causal_order, pbounds=pbounds,
                   features_order=features_order, optimizer=optimizer, masked_features=feature_masked)
