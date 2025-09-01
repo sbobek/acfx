@@ -18,20 +18,9 @@ Use the sidebar to navigate to:
 
 ---
 
-Start by selecting your data.
+Start by selecting your data in 'Data Selection'.
 """)
 
 # Footer
 st.markdown("---")
 st.caption("Developed by Piotr Kubacki (piotr.kubacki@student.uj.edu.pl) · Powered by Streamlit")
-
-
-# Numeric interval using slider
-start, end = st.slider(
-    "Select a numeric interval",
-    min_value=0,
-    max_value=100,
-    value=(25, 75)
-)
-
-st.write(f"Selected interval: {start} to {end}")
