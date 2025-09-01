@@ -13,7 +13,9 @@ elif st.session_state.plausibility_loss_on \
 else:
     if st.session_state.selected_X is None:
         raise ValueError("selected_X must be initialized in session state")
-    initial_pbounds = calc_pbounds(st.session_state.selected_X)
+    categorical_indicator = categorical_columns = st.session_state.feature_types[
+        st.session_state.feature_types["Type"] == "nominal"]["Column Name"].tolist()
+    initial_pbounds = calc_pbounds(st.session_state.selected_X, categorical_indicator)
     load_value('pbounds', initial_pbounds)
     st.subheader("The bounds for each feature to search over")
     for feature_name, interval in st.session_state.pbounds.items():
