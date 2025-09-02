@@ -8,6 +8,8 @@ import streamlit as st
 from utils.session_state import load_value, store_value
 
 def show_dane_wejsciowe():
+    if 'classifier_instance' in st.session_state:
+        del st.session_state['classifier_instance']
     load_value('data_loaded')
     if st.session_state.data_loaded:
         st.subheader("📈 Input data")
@@ -107,6 +109,8 @@ def delete_future_session_state():
         del st.session_state['casual_order']
     if 'pbounds' in st.session_state:
         del st.session_state['pbounds']
+    if 'classifier_instance' in st.session_state:
+        del st.session_state["classifier_instance"]
 
     pbounds_is_masked_to_delete = [key for key in st.session_state.keys() if key.endswith('_pbounds') or key.endswith('_is_masked')]
     for key in pbounds_is_masked_to_delete:
@@ -151,7 +155,7 @@ if st.session_state.source == "Builtin":
 elif st.session_state.source == "CSV file":
     st.info(
         "Please preprocess your data to meet the classifier's fit() requirements. "
-        "Without preprocessing, fitting may fail depending on the classifier.")
+        "Without preprocessing, fitting may fail or be in   efficient depending on the classifier.")
     uploaded_file = st.file_uploader("Load CSV", type=["csv"], on_change=clear_features_session_state)
     if not st.session_state.data_loaded or st.session_state.data_source_name is not None:
         data = None

@@ -10,7 +10,7 @@ from acfx import AcfxCustom, AcfxEBM, AcfxLinear, ACFX
 from utils.key_helper import get_pbounds_key
 
 def get_pbounds() -> dict[str,tuple[float,float]]:
-    return {key: (st.session_state[get_pbounds_key(key)][0], st.session_state[get_pbounds_key(key)][1])
+    return {key: (float(st.session_state[get_pbounds_key(key)][0]), float(st.session_state[get_pbounds_key(key)][1]))
             for key in st.session_state.pbounds.keys()}
 
 def get_masked_features() -> list[str]:
@@ -20,11 +20,14 @@ def get_masked_features() -> list[str]:
     return [feature_masked[:-len(suffix)] for feature_masked in masked_features_keys]
 
 def get_all_columns() -> list[str]:
-    return st.session_state.selected_X.columns
+    return list(st.session_state.selected_X.columns)
 
 def get_categorical_indicator() -> list[bool]:
     is_categorical = {row['Column Name']: row['Type'] != 'continuous'  for _, row in st.session_state.feature_types.iterrows()}
-    assert list(st.session_state.data.data.columns) == list(is_categorical.keys())
+    if 'data' in st.session_state.data:
+        assert list(st.session_state.data.data.columns) == list(is_categorical.keys())
+    else:
+        assert list(st.session_state.data.columns) == list(is_categorical.keys())
     return [is_categorical[feature_name] for feature_name in get_all_columns()]
 
 
@@ -51,10 +54,13 @@ def fit_acfx(features_order) -> ACFX:
         adjacency_matrix = st.session_state.adjacency_matrix
     if 'casual_order' in st.session_state and st.session_state.casual_order is not None:
         casual_order = st.session_state.casual_order
-
+        if all(isinstance(item, str) for item in casual_order):
+            all_columns = get_all_columns()
+            temp = [all_columns.index(column) for column in casual_order]
+            casual_order = temp
     if 'pbounds' not in st.session_state or not isinstance(st.session_state.pbounds, dict):
         raise TypeError("pbounds must be initialized in session state and be dict")
-    if (casual_order is None and adjacency_matrix is not None) or (casual_order is not None and adjacency_matrix is not None):
+    if (casual_order is None and adjacency_matrix is not None) or (casual_order is not None and adjacency_matrix is None):
         raise KeyError('casual_order and adjacency_matrix must be specified together')
     elif casual_order is not None and not isinstance(casual_order,list):
         raise TypeError('casual_order must be a list')
@@ -63,9 +69,10 @@ def fit_acfx(features_order) -> ACFX:
     elif 'feature_types' not in st.session_state or st.session_state.feature_types is None:
         raise KeyError('feature_types must be initialized in session state here')
 
-    return acfx_instance.fit(X = st.session_state.selected_X, adjacency_matrix=adjacency_matrix,
+    return acfx_instance.fit(X= st.session_state.selected_X,
+                             adjacency_matrix=adjacency_matrix,
                              casual_order=casual_order,
-                             pbounds=get_pbounds(), y=st.session_state.y,
+                             pbounds=get_pbounds(),
                              masked_features=get_masked_features(),
                              categorical_indicator=get_categorical_indicator(),
                              features_order=features_order)
@@ -170,8 +177,10 @@ else:
                                      sampling_from_model=st.session_state.sampling_from_model)
 
                     cfs = pd.DataFrame(cfs, columns=list(query_instances.columns))
-                    st.write(f"RESULT for {query_instance.array}:")
-                    st.dataframe(cfs)
-
+                    cfs.index = [f"Counterfactual {i+1}" for i in range(len(cfs))]
+                    query_instance_with_index = pd.DataFrame([query_instance])
+                    query_instance_with_index.index = ["Query Instance"]
+                    st.subheader(f"📊 RESULT {i+1}")
+                    st.dataframe(pd.concat([query_instance_with_index,cfs]), use_container_width=True)
 
 
