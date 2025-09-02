@@ -36,7 +36,7 @@ def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal
             if categorical_indicator[i]:
                 kwargs[key] = trial.suggest_categorical(key, list(range(int(bounds[key][0]), int(bounds[key][1]) + 1)))
             else:
-                kwargs[key] = trial.suggest_uniform(key, bounds[key][0], bounds[key][1])
+                kwargs[key] = trial.suggest_float(key, bounds[key][0], bounds[key][1], log=False)
 
         kwargs = update_masked_features_dict(features_order, masked_features, **kwargs)
         # todo rounding
@@ -159,6 +159,16 @@ def _generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_
                         diversity_weight, bounds, model, categorical_indicator=None, features_order=None,
                         masked_features=None, cfs=[], X=None, init_points=5, n_iter=1000,
                         optimizer_type: OptimizerType = OptimizerType.EBM, optimizer=None, sampling_from_model=True):
+
+    def is_null_or_empty(var):
+        if var is None:
+            return True
+        if isinstance(var, (list, tuple, dict, set)) and len(var) == 0:
+            return True
+        if isinstance(var, np.ndarray) and var.size == 0:
+            return True
+        return False
+
     def get_optimizer():
         def get_ebm_optimizer(model_classifier: ExplainableBoostingClassifier, query_instance: pd.DataFrame):
             return EBMCounterOptimizer(model_classifier, query_instance)
@@ -176,11 +186,11 @@ def _generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_
         else:
             raise NotImplementedError()
 
-    if categorical_indicator is None:
+    if is_null_or_empty(categorical_indicator):
         categorical_indicator = [False] * len(bounds)
-    if features_order is None:
+    if is_null_or_empty(features_order):
         features_order = list(bounds.keys())
-    if masked_features is None:
+    if is_null_or_empty(masked_features):
         masked_features = features_order
 
     return __generate_single_cf(query_instance=query_instance, desired_class=desired_class, adjacency_matrix=adjacency_matrix,

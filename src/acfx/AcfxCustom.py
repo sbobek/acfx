@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from overrides import overrides
 from sklearn.base import ClassifierMixin
 from typing import Sequence, Tuple, Dict, Optional, List, Self
@@ -32,7 +33,7 @@ class AcfxCustom(ACFX):
                                                 plausibility_weight, diversity_weight, init_points,
                                       n_iter, sampling_from_model)
 
-    def fit(self, X, adjacency_matrix:Optional[np.ndarray], casual_order:Optional[Sequence[int]],
+    def fit(self, X:pd.DataFrame, adjacency_matrix:Optional[np.ndarray], casual_order:Optional[Sequence[int]],
             pbounds:Dict[str, Tuple[float, float]],
             optimizer : ModelBasedCounterOptimizer=None, y=None, masked_features:Optional[List[str]]=None,
             categorical_indicator:Optional[List[bool]]=None, features_order:Optional[List[str]] =None) -> Self:
@@ -45,7 +46,7 @@ class AcfxCustom(ACFX):
 
         Parameters
         ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+        X : {sparse matrix} of shape (n_samples, n_features)
             Used for counterfactuals generation
 
         adjacency_matrix:

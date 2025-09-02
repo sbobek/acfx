@@ -17,7 +17,7 @@ class LogisticRegressionCounterOptimizer(ModelBasedCounterOptimizer):
                 isinstance(k, str) and
                 isinstance(v, tuple) and
                 len(v) == 2 and
-                all(isinstance(i, float) for i in v)
+                all(isinstance(i, float) or isinstance(i,int) for i in v)
                 for k, v in feature_bounds.items()
         ):
             raise AttributeError("feature_bounds must be a dict with string keys and tuple of two floats as values")

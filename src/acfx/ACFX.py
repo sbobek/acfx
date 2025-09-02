@@ -1,6 +1,7 @@
 from typing import Sequence, Tuple, Dict, Optional, List, Self
 
 import numpy as np
+import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.base import ClassifierMixin
 from abc import ABC, abstractmethod
@@ -33,7 +34,7 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
 
 
     @abstractmethod
-    def fit(self, X, adjacency_matrix:Optional[np.ndarray], casual_order:Optional[Sequence[int]],
+    def fit(self, X:pd.DataFrame, adjacency_matrix:Optional[np.ndarray], casual_order:Optional[Sequence[int]],
             pbounds:Dict[str, Tuple[float, float]],y=None, masked_features:Optional[List[str]] = None,
             categorical_indicator:Optional[List[bool]] =None, features_order:Optional[List[str]] =None) -> Self:
         """
@@ -45,7 +46,7 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
 
         Parameters
         ----------
-        X : {array-like, sparse matrix} of shape (n_samples, n_features)
+        X : {sparse matrix} of shape (n_samples, n_features)
             Used for counterfactuals generation
 
         adjacency_matrix:
