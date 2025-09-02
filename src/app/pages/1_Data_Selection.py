@@ -155,7 +155,7 @@ if st.session_state.source == "Builtin":
 elif st.session_state.source == "CSV file":
     st.info(
         "Please preprocess your data to meet the classifier's fit() requirements. "
-        "Without preprocessing, fitting may fail or be in   efficient depending on the classifier.")
+        "Without preprocessing, fitting may fail or be in inefficient depending on the classifier.")
     uploaded_file = st.file_uploader("Load CSV", type=["csv"], on_change=clear_features_session_state)
     if not st.session_state.data_loaded or st.session_state.data_source_name is not None:
         data = None
