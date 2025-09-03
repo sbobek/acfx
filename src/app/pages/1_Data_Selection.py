@@ -103,10 +103,16 @@ def delete_future_session_state():
         del st.session_state['classifier_params']
     if 'data_loaded' in st.session_state:
         st.session_state.data_loaded = False
+
     if 'adjacency_matrix' in st.session_state:
         del st.session_state['adjacency_matrix']
     if 'casual_order' in st.session_state:
         del st.session_state['casual_order']
+    if 'plausibility_loss_on' in st.session_state:
+        del st.session_state['plausibility_loss_on']
+
+    if 'casual_order_features' in st.session_state:
+        del st.session_state['casual_order_features']
     if 'pbounds' in st.session_state:
         del st.session_state['pbounds']
     if 'classifier_instance' in st.session_state:

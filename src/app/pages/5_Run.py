@@ -51,7 +51,7 @@ def fit_acfx(features_order) -> ACFX:
     adjacency_matrix = None
     casual_order = None
     if 'adjacency_matrix' in st.session_state and st.session_state.adjacency_matrix is not None:
-        adjacency_matrix = st.session_state.adjacency_matrix
+        adjacency_matrix = st.session_state.adjacency_matrix.to_numpy()
     if 'casual_order' in st.session_state and st.session_state.casual_order is not None:
         casual_order = st.session_state.casual_order
         if all(isinstance(item, str) for item in casual_order):
@@ -139,19 +139,17 @@ if 'proximity_weight' not in st.session_state \
     or 'diversity_weight' not in st.session_state \
     or 'sparsity_weight' not in st.session_state or 'data' not in st.session_state:
         st.warning("⚠️ Start by running 'Evaluation Settings'")
+elif 'classifier_name' not in st.session_state or st.session_state.classifier_name is None or \
+        'classifier_instance' not in st.session_state or st.session_state.classifier_instance is None:
+    st.warning("⚠️ Start by running 'Classifier Selection'")
 else:
-    if 'classifier_name' not in st.session_state or st.session_state.classifier_name is None:
-        raise ValueError('classifier_name must be in session state')
-    if 'classifier_instance' not in st.session_state or st.session_state.classifier_instance is None:
-        raise ValueError('classifier_instance must be in session state')
-
     show_desired_class_input()
     show_how_many_cfs_per_query_instance()
     show_init_points_choice()
     show_n_iter_choice()
     show_sampling_from_model_choice()
     query_instances = st.data_editor(
-        data=pd.DataFrame([0] * len(get_all_columns()), index=get_all_columns()).T,
+        data=pd.DataFrame([0.] * len(get_all_columns()), index=get_all_columns()).T,
         num_rows='dynamic',
         use_container_width=True,
     )

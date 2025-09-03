@@ -28,14 +28,38 @@ def edit_adjacency_order(casual_order):
     casual_order = sort_items(st.session_state.casual_order, direction="vertical")
     if casual_order != st.session_state.casual_order:
         st.session_state.casual_order = casual_order.copy()
-    st.write("Casual order:", st.session_state.casual_order)
+    # st.write("Casual order:", st.session_state.casual_order)
+
+def reset_adjacency():
+    if 'adjacency_matrix' in st.session_state:
+        del st.session_state.adjacency_matrix
+    if 'casual_order' in st.session_state:
+        del st.session_state.casual_order
+    store_value('plausibility_loss_on')
+
+def log_not_dag(graph:nx.DiGraph):
+    st.error('Input adjacency matrix is not a directed acyclic graph!\nFound cycle(s):')
+    for i, cycle in enumerate(list(nx.simple_cycles(graph)) ):
+        st.error(f"\nCycle {i}: {' → '.join(cycle)}")
+
+def validate_adjacency_order():
+    graph = nx.DiGraph(st.session_state.adjacency_matrix)
+    position = {node: i for i, node in enumerate(st.session_state.casual_order)}
+    violations = []
+    for u, v in graph.edges():
+        if position[u] <= position[v]:
+            violations.append((u, v))
+    if violations:
+        st.error("Adjacency order is NOT valid. Violations found:")
+        for u, v in violations:
+            st.error(f"Edge {u} → {v} violates the order.")
 
 if 'classifier_instance' not in st.session_state or 'selected_X' not in st.session_state:
     st.warning("⚠️ Start by initializing classifier in 'Classifier selection'")
 else:
     load_value('plausibility_loss_on', False)
     if st.checkbox(label="I want plausibility loss to be calculated.",
-                       key="_plausibility_loss_on", on_change=store_value, args=['plausibility_loss_on']):
+                       key="_plausibility_loss_on", on_change=reset_adjacency):
         if st.session_state.selected_X is None:
             raise ValueError("selected_X must be initialized in session state")
         if 'casual_order_features' not in st.session_state:
@@ -46,18 +70,23 @@ else:
         casual_model = train_causal_model(st.session_state.selected_X)
 
         st.subheader("Edit Adjacency Matrix")
-        load_value('adjacency_matrix', casual_model.adjacency_matrix_)
+        adjacency_matrix_with_features = pd.DataFrame(casual_model.adjacency_matrix_, columns=st.session_state.selected_X.columns,
+                                                      index=st.session_state.selected_X.columns)
+        load_value('adjacency_matrix', adjacency_matrix_with_features)
 
-        edited_adjacency_matrix = st.data_editor(casual_model.adjacency_matrix_, num_rows="dynamic")
-        #if pd.DataFrame.any(edited_adjacency_matrix != st.session_state.adjacency_matrix):
+        edited_adjacency_matrix = st.data_editor(adjacency_matrix_with_features)
         if not np.array_equal(edited_adjacency_matrix, st.session_state.adjacency_matrix):
             st.session_state.adjacency_matrix = edited_adjacency_matrix
-
+        if len(st.session_state.selected_X.columns) > 4:
+            st.info(f"Generating Adjacency Matrix might be not too pretty for large amount of features. You have {len(st.session_state.selected_X.columns)}.")
         if st.button("🔄 Generate adjacency graph"):
             fig, ax = plt.subplots()
             G = nx.DiGraph(st.session_state.adjacency_matrix)
-            generate_adjacency(G, fig, ax)
+            if not nx.is_directed_acyclic_graph(G):
+                log_not_dag(G)
+            else:
+                generate_adjacency(G, fig, ax)
 
         st.subheader("Edit Casual Order")
         edit_adjacency_order(casual_model.causal_order_)
-
+        validate_adjacency_order()

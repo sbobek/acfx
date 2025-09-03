@@ -68,6 +68,8 @@ if 'data_loaded' in st.session_state and st.session_state.data_loaded:
         init_classifier_params()
 
     if st.button("Initialize classifier"):
+        if st.session_state.classifier_name is None:
+            st.warning('Select classifier name first')
         init_classifier()
     if st.button("Reset classifier"):
         st.session_state["classifier_instance"] = None
