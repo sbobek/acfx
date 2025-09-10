@@ -62,7 +62,7 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
             Target values used for blackbox model fitting only. You can provide fitted blackbox to constructor or fit it in this method by providing this parameter
 
         masked_features:
-            masked features vector
+            List of interchangeable features
 
         categorical_indicator:
             True at the index where the variable should be treated as categorical
