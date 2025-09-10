@@ -12,12 +12,15 @@ cd acfx
 2. Build environment
 ```bash
 cd ./src/app
-conda create --name acfx_env_streamlit --python 3.11
+conda create --name acfx_env_streamlit python=3.11
 conda activate acfx_env_streamlit
 conda install pip
 pip install -r requirements.txt
 ```
-
+Alternatively, you can install dependencies by running:
+``` bash
+pip install acfx[streamlit-app]
+```
 ## Evaluation
 To start the streamlit app, run:
 ```bash

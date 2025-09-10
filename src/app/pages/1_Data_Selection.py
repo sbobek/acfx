@@ -132,6 +132,7 @@ st.title("🔍 Select data")
 load_value('source'); st.radio("Data source:", ["Builtin", "CSV file"], key="_source", on_change=data_source_changed, args=['source'])
 if st.session_state.source == "Builtin":
     st.session_state.label_column = None
+    st.session_state.drop_na = False
     st.session_state.data_loaded = False
     load_value('data_source_name'); st.radio("Dataset:", ['iris', 'wine',  'breast cancer',
                                                           # ,'diabetes', 'digits'
@@ -172,7 +173,6 @@ elif st.session_state.source == "CSV file":
         data = st.session_state.data
         X = st.session_state.X
         y = st.session_state.y
-
     if uploaded_file is not None:
         st.session_state.data_loaded = False
         data = pd.read_csv(uploaded_file).dropna(axis=1, how='all')
@@ -182,12 +182,14 @@ elif st.session_state.source == "CSV file":
             st.session_state.label_column = None
         load_value('label_column'); st.selectbox("Select label feature column:", data.columns, key="_label_column", on_change=store_value, args=['label_column'])
         if st.session_state.label_column is not None:
+            load_value('drop_na', False)
+            if st.checkbox("Drop NaN", key="_drop_na", on_change=store_value, args=['drop_na']):
+                data.dropna(inplace=True)
             X = data.drop(columns=[st.session_state.label_column])
             y = data[st.session_state.label_column]
             set_feature_types(data_instances=data, feature_names=data.columns)
             st.session_state.data_loaded = True
 
     save_input_data(X, y, None, data)
-
 
 show_dane_wejsciowe()

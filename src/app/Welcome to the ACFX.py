@@ -23,4 +23,4 @@ Start by selecting your data in 'Data Selection'.
 
 # Footer
 st.markdown("---")
-st.caption("Developed by Piotr Kubacki (piotr.kubacki@student.uj.edu.pl) · Powered by Streamlit")
+st.caption("Developed by Piotr Kubacki (piotr.kubacki00@gmail.com) · Powered by Streamlit")
