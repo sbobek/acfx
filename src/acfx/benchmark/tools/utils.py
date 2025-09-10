@@ -1,6 +1,6 @@
 import os
 import pickle
-from src.acfx.evaluation.multi_dataset_evaluation import DEFAULT_LOG_PATH
+from ...evaluation.multi_dataset_evaluation import DEFAULT_LOG_PATH
 from typing import Dict
 
 import numpy as np

@@ -10,7 +10,7 @@ import traceback
 
 from .data import OpenmlData
 from .data.consts import RANDOM_STATE, TIME_LIMIT, MODEL_TIME_LIMIT
-from src.acfx.evaluation.multi_dataset_evaluation import train_ebm_model, train_causal_model, \
+from ..evaluation.multi_dataset_evaluation import train_ebm_model, train_causal_model, \
     timeout_handler
 from .tools.utils import log2file, load_or_dump_cached_file
 from .ExplainersRegistry import ExplainersRegistry

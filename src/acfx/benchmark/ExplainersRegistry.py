@@ -239,7 +239,7 @@ class ExplainersRegistry:
                                                ng_function=genetic_neighborhood,
                                                discrete_use_probabilities=True,
                                                continuous_function_estimation=False,
-                                               returns_infos=True, path='benchmark/model/LORE/yadt/',
+                                               returns_infos=True, path='acfx/benchmark/model/LORE/yadt/',
                                                sep=';', log=True, depth=100)
         except:
             try:
@@ -251,7 +251,7 @@ class ExplainersRegistry:
                                                    ng_function=genetic_neighborhood,
                                                    discrete_use_probabilities=True,
                                                    continuous_function_estimation=False,
-                                                   returns_infos=True, path='benchmark/model/LORE/yadt/',
+                                                   returns_infos=True, path='acfx/benchmark/model/LORE/yadt/',
                                                    sep=';', log=True, depth=100)
             except Exception as e:
                 print(f'LORE failed with exception: {e}')

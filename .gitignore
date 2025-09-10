@@ -244,4 +244,5 @@ fabric.properties
 /.idea
 /.vs
 cache
-progress.txt
+**/progress.txt
+**/progress_error.txt
