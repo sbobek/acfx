@@ -6,12 +6,16 @@ from sklearn.linear_model import LogisticRegression
 from interpret.glassbox import ExplainableBoostingClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from utils.session_state import store_value, load_value
-from acfx import AcfxCustom, AcfxEBM, AcfxLinear, ACFX
+from acfx import AcfxCustom, AcfxEBM, AcfxLinear, ACFX, RandomSearchCounterOptimizer
 from utils.key_helper import get_pbounds_key
 
 def get_pbounds() -> dict[str,tuple[float,float]]:
     return {key: (float(st.session_state[get_pbounds_key(key)][0]), float(st.session_state[get_pbounds_key(key)][1]))
             for key in st.session_state.pbounds.keys()}
+
+def get_custom_optimizer(model: AcfxCustom, X: pd.DataFrame, feature_bounds: dict[str, tuple[float, float]], n_iter: int = 1000) \
+        -> RandomSearchCounterOptimizer:
+    return RandomSearchCounterOptimizer(model, X, feature_bounds, n_iter)
 
 def get_masked_features() -> list[str]:
     suffix = "_is_masked"
@@ -32,7 +36,7 @@ def get_categorical_indicator() -> list[bool]:
 
 
 @st.cache_resource
-def get_acfx() -> ACFX:
+def get_acfx():
     classifier_instance = st.session_state.classifier_instance
     if isinstance(classifier_instance, LogisticRegression):
         acfx = AcfxLinear(classifier_instance)
@@ -69,10 +73,22 @@ def fit_acfx(features_order) -> ACFX:
     elif 'feature_types' not in st.session_state or st.session_state.feature_types is None:
         raise KeyError('feature_types must be initialized in session state here')
 
+    bounds = get_pbounds()
+
+    if isinstance(acfx_instance, AcfxCustom):
+        return acfx_instance.fit(X=st.session_state.selected_X,
+                                 adjacency_matrix=adjacency_matrix,
+                                 casual_order=casual_order,
+                                 pbounds=bounds,
+                                 masked_features=get_masked_features(),
+                                 categorical_indicator=get_categorical_indicator(),
+                                 features_order=features_order,
+                                 optimizer= get_custom_optimizer(st.session_state.classifier_instance,
+                                                                 st.session_state.selected_X, bounds))
     return acfx_instance.fit(X= st.session_state.selected_X,
                              adjacency_matrix=adjacency_matrix,
                              casual_order=casual_order,
-                             pbounds=get_pbounds(),
+                             pbounds=bounds,
                              masked_features=get_masked_features(),
                              categorical_indicator=get_categorical_indicator(),
                              features_order=features_order)
