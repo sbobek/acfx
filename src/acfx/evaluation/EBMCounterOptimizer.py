@@ -28,16 +28,12 @@ class EBMCounterOptimizer(ModelBasedCounterOptimizer):
 
         @Todo Needs changes to return optimized value due to given strategy.
         """
-        # if feature is modifiable and not yet optimized
         if feature_name in feature_masked and feature_name not in self.updated_features:
-            # if multiclass classification take bins for term and class
             if len(self.model.term_scores_[term_idx].shape) > 1:
                 class_term_scores = self.model.term_scores_[term_idx].T[class_idx]
             else:
-                # else take score for class 1 or 1 - score for class 1
                 class_term_scores = self.model.term_scores_[term_idx] if class_idx == 1 else 1 - self.model.term_scores_[
                     term_idx]
-            # take term that gives best score for target class
             class_max = np.max(class_term_scores)
             try:
                 feature_score_idx = np.where(class_term_scores[1:-1] == class_max)[0][0]  ##this is score, not value imho
