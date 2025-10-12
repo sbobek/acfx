@@ -8,20 +8,29 @@ This page contains the API reference for public objects and functions in ACFX.
 Explanation interface
 -------------
 .. autosummary::
-    :toctree: generated/
+    :toctree: explanation_api/
 
-    acfx.model.ACFX
+    acfx.ACFX
+    acfx.AcfxCustom
+    acfx.AcfxEBM
+    acfx.AcfxLinear
 
 
-.. _utils_api:
+.. _counterfactual_generation:
 
-Utils
+Counterfactual generation
 -------------
 .. autosummary::
-    :toctree: generated/
+    :toctree: counterfactual_generation/
 
-    acfx.utils.utils
+    acfx.evaluation.ccfs
 
+.. _abstract:
 
+Abstract
+-------------
+.. autosummary::
+    :toctree: abstract/
 
-
+    acfx.abstract.ModelBasedCounterOptimizer
+    acfx.abstract.OptimizerType

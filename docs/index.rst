@@ -13,7 +13,7 @@ Welcome to the ACFX documentation
 Install
 =======
 
-TSProto can be installed from either `PyPI <https://pypi.org/project/acfx>`_ or directly from source code `GitHub <https://github.com/sbobek/acfx>`_
+**acfx** package can be installed from either `PyPI <https://pypi.org/project/acfx>`_ or directly from source code `GitHub <https://github.com/sbobek/acfx>`_
 
 To install form PyPI::
 
@@ -22,7 +22,7 @@ To install form PyPI::
 To install from source code::
 
    git clone https://github.com/sbobek/acfx
-   cd acfx
+   cd acfx/src
    pip install .
 
 .. toctree::
