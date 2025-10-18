@@ -35,7 +35,7 @@ def get_categorical_indicator() -> list[bool]:
     return [is_categorical[feature_name] for feature_name in get_all_columns()]
 
 
-@st.cache_resource
+# @st.cache_resource
 def get_acfx():
     classifier_instance = st.session_state.classifier_instance
     if isinstance(classifier_instance, LogisticRegression):
@@ -49,7 +49,7 @@ def get_acfx():
         raise ValueError("classifier_instance out of range")
     return acfx
 
-@st.cache_resource
+# @st.cache_resource
 def fit_acfx(features_order) -> ACFX:
     acfx_instance = get_acfx()
     adjacency_matrix = None
