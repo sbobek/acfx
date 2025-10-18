@@ -1,5 +1,9 @@
 def calc_pbounds(data, categorical_indicator):
-    return {f: (data[f].min(), data[f].max()) for f in data.columns if f not in categorical_indicator}
+    return {
+        f: (int(data[f].min()), int(data[f].max())) if f in categorical_indicator
+        else (data[f].min(), data[f].max())
+        for f in data.columns
+    }
 
 def get_pbounds_key(feature_name):
     return f"{feature_name}_pbounds"

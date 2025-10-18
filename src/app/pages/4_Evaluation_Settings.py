@@ -23,14 +23,24 @@ else:
         max = interval[1]
         pbounds_key = get_pbounds_key(feature_name)
         load_value(pbounds_key, (min, max))
-        start,end=st.slider(
+        if feature_name in categorical_indicator:
+            start, end = st.slider(
             feature_name,
-            min_value=float(min - 3*abs(max-min)),
-            max_value=float(max + 3*abs(max-min)),
+            min_value=min,
+            max_value=max,
             key=f"_{pbounds_key}",
             on_change=store_value,
             args= [pbounds_key]
-        )
+            )
+        else:
+            start,end=st.slider(
+                feature_name,
+                min_value=float(min - 3*abs(max-min)),
+                max_value=float(max + 3*abs(max-min)),
+                key=f"_{pbounds_key}",
+                on_change=store_value,
+                args= [pbounds_key]
+            )
         masked_feature_key = get_masked_feature_key(feature_name)
         load_value(masked_feature_key, False)
         st.checkbox(label=f"Mark **{feature_name}** as masked feature", key=f'_{masked_feature_key}',
