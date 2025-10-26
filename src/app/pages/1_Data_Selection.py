@@ -97,6 +97,8 @@ def clear_features_session_state():
 def delete_future_session_state():
     if 'selected_X' in st.session_state:
         del st.session_state['selected_X']
+    if 'selected_feature_types' in st.session_state:
+        del st.session_state['selected_feature_types']
     if 'classifier_instance' in st.session_state:
         del st.session_state['classifier_instance']
     if 'classifier_params' in st.session_state:
