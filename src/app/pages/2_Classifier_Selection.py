@@ -1,5 +1,5 @@
 import streamlit as st
-from interpret.glassbox import ExplainableBoostingClassifier
+import interpret.glassbox as gl
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
@@ -35,12 +35,13 @@ def init_classifier():
     if params is not None:
         if st.session_state.classifier_name == classifier_list[0]:
             classifier = LogisticRegression(**params)
+            classifier = gl.LogisticRegression(linear_class=classifier, feature_types= st.session_state.selected_feature_types, **params)
         elif st.session_state.classifier_name == classifier_list[1]:
             classifier = RandomForestClassifier(**params)
         elif st.session_state.classifier_name == classifier_list[2]:
             classifier = KNeighborsClassifier(**params)
         elif st.session_state.classifier_name == classifier_list[3]:
-            classifier = ExplainableBoostingClassifier(feature_types= st.session_state.selected_feature_types, **params)
+            classifier = gl.ExplainableBoostingClassifier(feature_types= st.session_state.selected_feature_types, **params)
         else:
             raise IndexError("classifier_name out of range")
 
