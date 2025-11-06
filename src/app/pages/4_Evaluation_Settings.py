@@ -24,14 +24,18 @@ else:
         pbounds_key = get_pbounds_key(feature_name)
         load_value(pbounds_key, (min, max))
         if feature_name in categorical_indicator:
-            start, end = st.slider(
-            feature_name,
-            min_value=min,
-            max_value=max,
-            key=f"_{pbounds_key}",
-            on_change=store_value,
-            args= [pbounds_key]
-            )
+            if min == max:
+                st.session_state[f"_{pbounds_key}"] = (min,max)
+                st.info(f"Feature with name '{feature_name}' was detected to have only one value in provided dataset: {min}")
+            else:
+                start, end = st.slider(
+                feature_name,
+                min_value=min,
+                max_value=max,
+                key=f"_{pbounds_key}",
+                on_change=store_value,
+                args= [pbounds_key]
+                )
         else:
             start,end=st.slider(
                 feature_name,

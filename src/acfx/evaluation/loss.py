@@ -2,14 +2,17 @@ import numpy as np
 from scipy.spatial.distance import pdist, squareform
 
 
-def compute_causal_penalty(samples, adjacency_matrix, sample_order, categorical=None):
+def compute_causal_penalty(samples, adjacency_matrix, sample_order, categorical=None, skip_categorical=True):
     """
     Calculate the inconsistency of samples with the given adjacency matrix.
 
     Parameters:
+    - samples: np.ndarray, counterfactual samples to evaluate the causal penalty for
     - adjacency_matrix: np.ndarray, the adjacency matrix from DirectLiNGAM
     - samples: np.ndarray, the samples to evaluate (num_samples x num_features)
-
+    - categorical: bool, categorical or continuous indicator
+    - skip_categorical: bool, skip categorical indicator - when adjacency matrix is not categorical-feature effective.
+    Even if the flag is true, we want the sample_order to be the same length as number of features in samples to keep the indexing
     Returns:
     - inconsistency: float, a measure of how inconsistent the samples are with the adjacency matrix
     """
@@ -19,18 +22,23 @@ def compute_causal_penalty(samples, adjacency_matrix, sample_order, categorical=
     if categorical is None:
         categorical = [False] * len(sample_order)
     # Iterate through each feature and its causal parents
+    included_to_loss = 0
     for i in sample_order:
+        if skip_categorical and categorical[i]:
+            continue
+        included_to_loss += 1
         parents = np.where(adjacency_matrix[i, :] != 0)[0]
         if len(parents) > 0:
             # Predicted values based on parents
             predicted_values = np.dot(samples[:, parents], adjacency_matrix[i, parents])
             # Calculate the inconsistency as the mean squared error
-            mse = (samples[:, i] - predicted_values) ** 2
             if categorical[i]:
-                mse = min((1, mse))
+                mse = (samples[:, i].round() != predicted_values.round()).astype(float)
+            else:
+                mse = (samples[:, i] - predicted_values) ** 2
             inconsistency += mse
 
-    return np.sqrt(np.mean(inconsistency)) / len(sample_order)
+    return np.sqrt(np.mean(inconsistency)) / max(1, included_to_loss)
 
 
 def compute_yloss(model, cfs, desired_class):
