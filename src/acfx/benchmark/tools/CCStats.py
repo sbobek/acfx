@@ -94,7 +94,9 @@ class CCStats:
                                                       categorical=categorical_indicator) for ce in cfs]))
         record.append(np.mean([compute_sparsity_loss(ce.reshape(1, -1), explain_instance) for ce in cfs]))
         record.append(np.mean([compute_causal_penalty(ce.reshape(1, -1), casual_model.adjacency_matrix_,
-                                                      casual_model.causal_order_, categorical=categorical_indicator)
+                                                      sample_order=casual_model.causal_order_,
+                                                      features_order=dataset.features,
+                                                      categorical=categorical_indicator)
                                for ce in cfs]))
 
         cfs_as_np = np.array(cfs)

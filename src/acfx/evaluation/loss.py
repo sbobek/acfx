@@ -1,8 +1,9 @@
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
+import warnings
+import pandas as pd
 
-
-def compute_causal_penalty(samples, adjacency_matrix, sample_order, categorical=None, skip_categorical=True):
+def compute_causal_penalty(samples, adjacency_matrix, sample_order, features_order, categorical=None, skip_categorical=True):
     """
     Calculate the inconsistency of samples with the given adjacency matrix.
 
@@ -25,6 +26,12 @@ def compute_causal_penalty(samples, adjacency_matrix, sample_order, categorical=
     included_to_loss = 0
     for i in sample_order:
         if skip_categorical and categorical[i]:
+            num_from_categorical = np.sum(adjacency_matrix[i,:] != 0)
+            if num_from_categorical > 0:
+                warnings.warn(f'Categorical feature is skipped, but the adjacency indicates causability (parent: {features_order[i]})')
+            num_to_categorical = np.sum(adjacency_matrix[:,i] != 0)
+            if num_to_categorical > 0:
+                warnings.warn(f'Categorical feature is skipped, but the adjacency indicates causability (child: {features_order[i]})')
             continue
         included_to_loss += 1
         parents = np.where(adjacency_matrix[i, :] != 0)[0]
@@ -40,8 +47,9 @@ def compute_causal_penalty(samples, adjacency_matrix, sample_order, categorical=
 
     return np.sqrt(np.mean(inconsistency)) / max(1, included_to_loss)
 
-
-def compute_yloss(model, cfs, desired_class):
+def compute_yloss(model, cfs, desired_class, features_order):
+    if isinstance(cfs, np.ndarray):
+        cfs = pd.DataFrame(cfs, columns=features_order)
     predicted_value = np.array(model.predict_proba(cfs))
     maxvalue = np.full((len(predicted_value)), -np.inf)
     for c in range(len(model.classes_)):
@@ -103,14 +111,14 @@ def compute_diversity_loss(cfs, low=1e-6, high=1e-5):
     return determinant
 
 
-def compute_loss(model, cfs, query_instance, desired_class, adjency_matrix, causal_order,
+def compute_loss(model, cfs, query_instance, desired_class, adjacency_matrix, causal_order,
                  proximity_weight, sparsity_weight, plausability_weight, diversity_weight, pbounds, features_order,
                  masked_features, categorical=None, allcfs=None):
     """Computes the overall loss"""
     if allcfs is None:
         allcfs = []
 
-    yloss, maxyloss = compute_yloss(model, cfs, desired_class)
+    yloss, maxyloss = compute_yloss(model, cfs, desired_class, features_order=features_order)
     conditional_term = 1.0 / (
                 yloss + 1 + sum([proximity_weight, sparsity_weight, plausability_weight, diversity_weight]))
 
@@ -118,7 +126,8 @@ def compute_loss(model, cfs, query_instance, desired_class, adjency_matrix, caus
                                             categorical=categorical) \
         if proximity_weight > 0 else 0.0
     sparsity_loss = compute_sparsity_loss(cfs, query_instance) if sparsity_weight > 0 else 0.0
-    plausability_loss = compute_causal_penalty(cfs, adjency_matrix, causal_order,
+    plausability_loss = compute_causal_penalty(samples=cfs, adjacency_matrix=adjacency_matrix,
+                                               sample_order=causal_order, features_order=features_order,
                                                categorical=categorical) if plausability_weight > 0 else 0
     diversity_loss = 1 - np.abs(compute_diversity_loss(allcfs)) if len(allcfs) > 1 and diversity_weight > 0 else 0
     # print(f'DL: {diversity_loss} for len of cfs {len(allcfs)}, and PrxL: {proximity_loss} and PL {plausability_loss} and sparl: {sparsity_loss}')

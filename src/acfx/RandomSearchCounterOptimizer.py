@@ -17,9 +17,10 @@ class RandomSearchCounterOptimizer(ModelBasedCounterOptimizer):
 
     @overrides
     def optimize_proba(self, target_class: int, feature_masked: list[str]) -> Dict[str, float]:
+        target_class_name = self.model.feature_names_in_[target_class]
         base_instance = self.X.mean().copy()
         best_instance = base_instance.copy()
-        best_score = self.model.predict_proba([base_instance])[0][target_class]
+        best_score = self.model.predict_proba([base_instance])[0][target_class_name]
 
         for _ in range(self.n_iter):
             candidate = base_instance.copy()
@@ -28,7 +29,7 @@ class RandomSearchCounterOptimizer(ModelBasedCounterOptimizer):
                     min_val, max_val = self.feature_bounds[feature_name]
                     candidate[feature_name] = np.random.uniform(min_val, max_val)
 
-            score = self.model.predict_proba([candidate])[0][target_class]
+            score = self.model.predict_proba([candidate])[0][target_class_name]
             if score > best_score:
                 best_score = score
                 best_instance = candidate.copy()

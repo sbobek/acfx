@@ -4,8 +4,8 @@ import pandas as pd
 import numpy as np
 from overrides import overrides
 from sklearn.linear_model._base import LinearClassifierMixin
-
 from ..abstract import ModelBasedCounterOptimizer
+import numbers
 
 class LogisticRegressionCounterOptimizer(ModelBasedCounterOptimizer):
     def __init__(self, model:LinearClassifierMixin, X: pd.DataFrame, feature_bounds:dict):
@@ -13,11 +13,12 @@ class LogisticRegressionCounterOptimizer(ModelBasedCounterOptimizer):
             raise AttributeError('model.coef_ must be set')
         if feature_bounds is None:
             raise ValueError("feature_bounds must be set")
+
         if not isinstance(feature_bounds, dict) or not all(
                 isinstance(k, str) and
                 isinstance(v, tuple) and
                 len(v) == 2 and
-                all(isinstance(i, float) or isinstance(i,int) for i in v)
+                all(isinstance(i, numbers.Number) for i in v)
                 for k, v in feature_bounds.items()
         ):
             raise AttributeError("feature_bounds must be a dict with string keys and tuple of two floats as values")
@@ -29,6 +30,7 @@ class LogisticRegressionCounterOptimizer(ModelBasedCounterOptimizer):
     @overrides
     def optimize_proba(self, target_class: int, feature_masked: List[str]) -> Dict[str, float]:
         optimized_instances = []
+        # target_class_name = self.model.feature_names_in_[target_class]
 
         for index, instance in self.X.iterrows():
             coefficients = self.model.coef_[target_class]  # Extract model coefficients for the target class

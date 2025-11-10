@@ -8,10 +8,10 @@ from sklearn.datasets import load_iris
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 
-from RandomSearchCounterOptimizer import RandomSearchCounterOptimizer
-from src.acfx import AcfxCustom
-from src.acfx.abstract import ModelBasedCounterOptimizer
-from src.acfx.evaluation.loss import compute_causal_penalty
+from ..RandomSearchCounterOptimizer import RandomSearchCounterOptimizer
+from ...acfx import AcfxCustom
+from ...acfx.abstract import ModelBasedCounterOptimizer
+from ...acfx.evaluation.loss import compute_causal_penalty
 
 
 @pytest.fixture
@@ -53,7 +53,7 @@ def test_custom_cfx_optimizer(sample_data):
 
     cf = explainer.counterfactual(desired_class=desired_class, query_instance=query_instance)
 
-    cfs_casual_penalty = compute_causal_penalty(cf, adjacency_matrix, causal_order)
+    cfs_casual_penalty = compute_causal_penalty(cf, adjacency_matrix, sample_order=causal_order, features_order=features_order)
 
     assert cfs_casual_penalty is not None and cfs_casual_penalty > 0
 
