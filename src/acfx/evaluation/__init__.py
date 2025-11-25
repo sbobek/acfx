@@ -1,5 +1,5 @@
 from .ccfs import generate_cfs
 from .EBMCounterOptimizer import EBMCounterOptimizer
 from .LogisticRegressionCounterOptimizer import LogisticRegressionCounterOptimizer
-
-__all__ = [LogisticRegressionCounterOptimizer, EBMCounterOptimizer, generate_cfs]
+from .bayesian_model import train_bayesian_model
+__all__ = [LogisticRegressionCounterOptimizer, EBMCounterOptimizer, generate_cfs, train_bayesian_model]
