@@ -8,6 +8,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from utils.session_state import store_value, load_value
 from acfx import AcfxCustom, AcfxEBM, AcfxLinear, ACFX, RandomSearchCounterOptimizer
 from utils.key_helper import get_pbounds_key
+from utils.features_by_type import get_categorical_indicator, get_all_columns
 
 def get_pbounds() -> dict[str,tuple[float,float]]:
     return {key: (float(st.session_state[get_pbounds_key(key)][0]), float(st.session_state[get_pbounds_key(key)][1]))
@@ -22,18 +23,6 @@ def get_masked_features() -> list[str]:
     masked_features_keys = [key for key in st.session_state.keys()
                             if key.endswith(suffix) and st.session_state[key] == True]
     return [feature_masked[:-len(suffix)] for feature_masked in masked_features_keys]
-
-def get_all_columns() -> list[str]:
-    return list(st.session_state.selected_X.columns)
-
-def get_categorical_indicator() -> list[bool]:
-    is_categorical = {row['Column Name']: row['Type'] != 'continuous'  for _, row in st.session_state.feature_types.iterrows()}
-    if 'data' in st.session_state.data:
-        assert list(st.session_state.data.data.columns) == list(is_categorical.keys())
-    else:
-        assert list(st.session_state.data.columns) == list(is_categorical.keys())
-    return [is_categorical[feature_name] for feature_name in get_all_columns()]
-
 
 # @st.cache_resource
 def get_acfx():
