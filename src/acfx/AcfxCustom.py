@@ -34,7 +34,7 @@ class AcfxCustom(ACFX):
                                       n_iter, sampling_from_model)
 
     def fit(self, X: pd.DataFrame, pbounds: Dict[str, Tuple[float, float]], optimizer : ModelBasedCounterOptimizer=None,
-            casual_order: Optional[Sequence[int]]=None,
+            causal_order: Optional[Sequence[int]]=None,
             adjacency_matrix: Optional[np.ndarray]=None, y=None, masked_features: Optional[List[str]] = None,
             categorical_indicator: Optional[List[bool]] = None, features_order: Optional[List[str]] = None,
             bayesian_causality:bool = False, num_bins:Optional[int] = None) -> Self:
@@ -56,7 +56,7 @@ class AcfxCustom(ACFX):
         optimizer:
             Custom optimizer compliant with blackbox predictor
 
-        casual_order:
+        causal_order:
             The order of variables in the causal graph.
 
         adjacency_matrix:
@@ -80,10 +80,11 @@ class AcfxCustom(ACFX):
 
         num_bins:
             Number of bins to use for discretizing continuous features
+
         """
         self.optimizer_type = OptimizerType.Custom
         if optimizer is None:
             raise ValueError("Optimizer must be given for AcfxCustom")
         self.optimizer = optimizer
-        return super().fit(X, pbounds, casual_order, adjacency_matrix,
+        return super().fit(X, pbounds, causal_order, adjacency_matrix,
                     y, masked_features,categorical_indicator, features_order)

@@ -298,7 +298,7 @@ def generate_cfs_bayesian(query_instance:np.ndarray, desired_class:int, bayesian
 
     return np.vstack(cfs)
 
-def generate_cfs(query_instance:np.ndarray, desired_class:int, adjacency_matrix:np.ndarray, casual_order : Sequence[int], proximity_weight : float,
+def generate_cfs(query_instance:np.ndarray, desired_class:int, adjacency_matrix:np.ndarray, causal_order : Sequence[int], proximity_weight : float,
                  sparsity_weight: float, plausibility_weight: float, diversity_weight: float, bounds:Dict[str, Tuple[float, float]],
                  model:ClassifierMixin, features_order:Optional[List[str]] =None,
                  masked_features:Optional[List[str]] =None, categorical_indicator:Optional[List[bool]] =None, X:Optional[pd.DataFrame] =None,
@@ -357,7 +357,7 @@ def generate_cfs(query_instance:np.ndarray, desired_class:int, adjacency_matrix:
     cfs = []
     for _ in range(num_cfs):
         cf = _generate_single_cf(query_instance, desired_class, adjacency_matrix,
-                                 casual_order, proximity_weight, sparsity_weight,
+                                 causal_order, proximity_weight, sparsity_weight,
                                  plausibility_weight, diversity_weight,
                                  bounds, model, categorical_indicator, features_order, masked_features=masked_features,
                                  cfs=cfs, X=X, init_points=init_points, n_iter=n_iter,

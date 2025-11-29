@@ -315,7 +315,7 @@ class ExplainersRegistry:
 def run_ccf_casual(explain_instance, model_clf, dataset, desired_class, num_cfs, adjacency_matrix, causal_order,
                    pbounds, as_causal=True, masked_features=None, init_points=500, n_iter=100):
     return generate_cfs(explain_instance, desired_class=desired_class, adjacency_matrix=adjacency_matrix,
-                        casual_order=causal_order,
+                        causal_order=causal_order,
                         proximity_weight=1,
                         sparsity_weight=1,
                         categorical_indicator = dataset._categorical_indicator,
@@ -333,7 +333,7 @@ def run_ccf_casual(explain_instance, model_clf, dataset, desired_class, num_cfs,
 def run_ccf_nocasual(explain_instance, model_clf, dataset, desired_class, num_cfs, adjacency_matrix, causal_order,
             pbounds, masked_features=None, init_points=500, n_iter=100):
     return generate_cfs(explain_instance, desired_class=desired_class, adjacency_matrix=adjacency_matrix,
-                        casual_order=causal_order,
+                        causal_order=causal_order,
                         proximity_weight=1,
                         sparsity_weight=1,
                         categorical_indicator = dataset._categorical_indicator,

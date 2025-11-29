@@ -6,7 +6,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.base import ClassifierMixin
 from abc import ABC, abstractmethod
 
-from evaluation.ccfs import generate_cfs_bayesian
+from .evaluation import generate_cfs_bayesian
 from .abstract import OptimizerType
 from .evaluation import generate_cfs
 from .evaluation import train_bayesian_model
@@ -33,13 +33,13 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
         self.features_order = None
         self.pbounds = None
         self.adjacency_matrix = None
-        self.casual_order = None
+        self.causal_order = None
         self.masked_features = None
         self.bayesian_model = None
 
 
     @abstractmethod
-    def fit(self, X: pd.DataFrame, pbounds: Dict[str, Tuple[float, float]], casual_order: Optional[Sequence[int]]=None,
+    def fit(self, X: pd.DataFrame, pbounds: Dict[str, Tuple[float, float]], causal_order: Optional[Sequence[int]]=None,
             adjacency_matrix: Optional[np.ndarray]=None, y=None, masked_features: Optional[List[str]] = None,
             categorical_indicator: Optional[List[bool]] = None, features_order: Optional[List[str]] = None,
             bayesian_causality:bool = False, num_bins:Optional[int] = None) -> Self:
@@ -58,7 +58,7 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
         pbounds:
             The bounds for each feature to search over (dict with feature names as keys and tuple (min, max) as values).
 
-        casual_order:
+        causal_order:
             The order of variables in the causal graph.
 
         adjacency_matrix:
@@ -82,6 +82,7 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
 
         num_bins:
             Number of bins to use for discretizing continuous features (bayesian causality only)
+
         """
         if y is not None:
             self.blackbox.fit(X, y)
@@ -92,7 +93,7 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
 
         if not self.bayesian_causality:
             self.adjacency_matrix = adjacency_matrix
-            self.casual_order = casual_order
+            self.causal_order = causal_order
         else:
             self.num_bins = num_bins
             self.bayesian_model = train_bayesian_model(self.X, self.categorical_indicator, self.num_bins)
@@ -151,14 +152,14 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
         """
         if plausibility_weight > 0:
             if not self.bayesian_causality:
-                if self.casual_order is None:
-                    raise ValueError("Casual order must be provided if plausibility loss is on")
+                if self.causal_order is None:
+                    raise ValueError("Causal order must be provided if plausibility loss is on")
                 if self.adjacency_matrix is None:
                     raise ValueError("adjacency_matrix must be provided")
                 if self.adjacency_matrix.shape[0] != self.adjacency_matrix.shape[1]:
                     raise ValueError("adjacency matrix must have same number of rows and columns")
-                if self.adjacency_matrix.shape[0] != len(self.casual_order):
-                    raise ValueError("adjacency matrix must be of same length as casual order")
+                if self.adjacency_matrix.shape[0] != len(self.causal_order):
+                    raise ValueError("adjacency matrix must be of same length as causal order")
             else:
                 if self.bayesian_model is None:
                     raise ValueError("Bayesian model must be provided")
@@ -178,7 +179,7 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
             return generate_cfs(query_instance=query_instance,
                                 desired_class=desired_class,
                                 adjacency_matrix=self.adjacency_matrix,
-                                casual_order=self.casual_order,
+                                causal_order=self.causal_order,
                                 proximity_weight=proximity_weight,
                                 sparsity_weight=sparsity_weight,
                                 plausibility_weight=plausibility_weight,
