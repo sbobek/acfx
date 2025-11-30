@@ -137,6 +137,10 @@ def delete_future_session_state():
         del st.session_state["classifier_instance"]
     if 'desired_class' in st.session_state:
         del st.session_state['desired_class']
+    if 'num_bins' in st.session_state:
+        del st.session_state['num_bins']
+    if 'bayesian_model' in st.session_state:
+        del st.session_state['bayesian_model']
 
     pbounds_is_masked_to_delete = [key for key in st.session_state.keys() if key.endswith('_pbounds') or key.endswith('_is_masked')]
     for key in pbounds_is_masked_to_delete:
