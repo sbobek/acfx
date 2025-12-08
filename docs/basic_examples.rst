@@ -95,7 +95,7 @@ To generate counterfactual explanations for a given instance:
     original_class = model.predict([query_instance])[0]
 
     cf = explainer.counterfactual(desired_class=original_class, query_instance=query_instance)
-    print(counterfactuals)
+    print(cf)
 
 
 Using custom blackbox
