@@ -16,8 +16,6 @@ ADJACENCY_OPTION_DIRECTLINGAM = 'DirectLiNGAM'
 ADJACENCY_OPTION_BAYESIAN = 'Discrete Bayesian network'
 
 def reset_adjacency_bayesian():
-    # if 'num_bins' in st.session_state:
-    #     st.session_state.num_bins = None
     if 'bayesian_model' in st.session_state:
         st.session_state.bayesian_model = None
     store_value('plausibility_loss_on')
@@ -29,12 +27,26 @@ def reset_adjacency_lingam():
         del st.session_state.casual_order
     store_value('plausibility_loss_on')
 
+
+def set_zoom(ax):
+    load_value('zoom_factor', 1)
+    st.slider(
+        "Zoom Level (Adjust to zoom in/out)",
+        min_value=0.1,
+        max_value=2.0,
+        step=0.05, key="_zoom_factor", on_change=store_value, args=['zoom_factor']
+    )
+    limit = 1.0 * st.session_state.zoom_factor
+    ax.set_xlim(-limit, limit)
+    ax.set_ylim(-limit, limit)
+
 def lingam_causality_display():
     def generate_adjacency(graph, fig, ax):
         pos = nx.spring_layout(graph, k=15)
-        nx.draw(graph, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=2000, font_size=10)
+        nx.draw(graph, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=2000, font_size=6)
         # Display edge weights
         edge_labels = {(u, v): f"{d['weight']:.2f}" for u, v, d in graph.edges(data=True)}
+        set_zoom(ax)
         nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels, ax=ax)
         st.pyplot(fig)
 
@@ -98,10 +110,9 @@ def lingam_causality_display():
     edited_adjacency_matrix = st.data_editor(adjacency_matrix_with_features)
     if not np.array_equal(edited_adjacency_matrix, st.session_state.adjacency_matrix):
         st.session_state.adjacency_matrix = edited_adjacency_matrix
-    if len(st.session_state.selected_X.columns) > 4:
-        st.info(
-            f"Generating Adjacency Matrix might be not too pretty for large amount of features. You have {len(st.session_state.selected_X.columns)}.")
-    if st.button("🔄 Generate adjacency graph"):
+    info_too_many_features_for_graph()
+    if st.checkbox(label="🔄 Generate adjacency graph",
+                       key="_generate_graph", on_change=store_value, args=['generate_graph']):
         fig, ax = plt.subplots()
         G = nx.DiGraph(st.session_state.adjacency_matrix)
         if not nx.is_directed_acyclic_graph(G):
@@ -119,6 +130,13 @@ def lingam_causality_display():
     edit_adjacency_order(causal_order_mapped)
     validate_adjacency_order()
 
+
+def info_too_many_features_for_graph():
+    if len(st.session_state.selected_X.columns) > 4:
+        st.info(
+            f"Graph might be not too pretty for large amount of features. You have {len(st.session_state.selected_X.columns)}.")
+
+
 def bayesian_causality_display():
     def plot_cpd_table(bayesian_model: DiscreteBayesianNetwork):
         st.title("Bayesian Network Visualization")
@@ -133,23 +151,28 @@ def bayesian_causality_display():
             st.warning(f'No edges found in {ADJACENCY_OPTION_BAYESIAN}. Structure of the DAG indicates no causality between nodes.')
             return
 
-        G = nx.DiGraph()
-        G.add_nodes_from(nodes)
-        G.add_edges_from(edges)
+        info_too_many_features_for_graph()
+        if st.checkbox(label="🔄 Generate Bayesian Network graph",
+                       key="_generate_graph", on_change=store_value, args=['generate_graph']):
+            G = nx.DiGraph()
+            G.add_nodes_from(nodes)
+            G.add_edges_from(edges)
 
-        fig, ax = plt.subplots(figsize=(6, 4))
-        pos = nx.spring_layout(G)
-        nx.draw(G, pos,
-                with_labels=True,
-                node_size=2000,
-                node_color='lightblue',
-                font_size=12,
-                font_weight='bold',
-                arrows=True,
-                ax=ax)
-        ax.set_title("Bayesian Network Graph")
+            fig, ax = plt.subplots(figsize=(6, 4))
+            set_zoom(ax)
+            pos = nx.spring_layout(G)
+            nx.draw(G, pos,
+                    with_labels=True,
+                    node_size=2000,
+                    node_color='lightblue',
+                    font_size=6,
+                    font_weight='bold',
+                    arrows=True,
+                    ax=ax)
 
-        st.pyplot(fig)
+            ax.set_title("Bayesian Network Graph")
+            st.pyplot(fig)
+
         num_bins = st.session_state['num_bins']
         st.info(f'All continuous features were discretized to {num_bins} bins.')
         st.subheader("Conditional Probability Distributions Table:")
@@ -161,9 +184,8 @@ def bayesian_causality_display():
                 df = cpd.to_dataframe()
             except:
                 continue
-            # todo: multidimentional cpd. I only tested for now when there is only one parent
             st.write(f"**CPD of {cpd.variable} (column-valued):**")
-            st.write(f"**Conditionality on {cpd.variables[-1]} (row-valued):**")
+            st.write(f"**Conditionality on {cpd.get_evidence()} (row-valued):**")
             st.table(df)
 
     reset_adjacency_lingam()
@@ -180,9 +202,12 @@ def get_default_adjacency_generator_name():
     else:
         return ADJACENCY_OPTION_DIRECTLINGAM
 
+load_value('generate_graph', False)
+
 if 'classifier_instance' not in st.session_state or 'selected_X' not in st.session_state:
     st.warning("⚠️ Start by initializing classifier in 'Classifier selection'")
 else:
+    load_value('generate_graph', False)
     load_value('plausibility_loss_on', False)
     if st.checkbox(label="I want plausibility loss to be calculated.",
                    key="_plausibility_loss_on", on_change=reset_adjacency_lingam):
@@ -197,10 +222,9 @@ else:
                      args=['adjacency_generator_name'])
         if st.session_state.adjacency_generator_name == ADJACENCY_OPTION_DIRECTLINGAM:
             st.title(F"Feature Relationship (generated by {ADJACENCY_OPTION_DIRECTLINGAM})")
-            st.text("see more about the method: https://pypi.org/project/lingam/")
+            st.text("see more (lingam): https://pypi.org/project/lingam/ ")
             lingam_causality_display()
         elif st.session_state.adjacency_generator_name == ADJACENCY_OPTION_BAYESIAN:
-            st.title(f"Feature Relationship (generated by {ADJACENCY_OPTION_DIRECTLINGAM} + pgmpy)")
-            st.text("see more (lingam): https://pypi.org/project/lingam/ ")
+            st.title(f"Feature Relationship (generated by {ADJACENCY_OPTION_BAYESIAN} of pgmpy package)")
             st.text("see more (pgmpy): https://pgmpy.org/models/bayesiannetwork.html ")
             bayesian_causality_display()
