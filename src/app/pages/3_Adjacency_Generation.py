@@ -11,9 +11,8 @@ from streamlit_sortables import sort_items
 from utils.features_by_type import get_continuous_cols, get_categorical_indicator, get_all_columns
 from utils.session_state import store_value, load_value
 from acfx.evaluation.bayesian_model import train_bayesian_model
+from utils.const import ADJACENCY_OPTION_DIRECTLINGAM,ADJACENCY_OPTION_BAYESIAN
 
-ADJACENCY_OPTION_DIRECTLINGAM = 'DirectLiNGAM'
-ADJACENCY_OPTION_BAYESIAN = 'Discrete Bayesian network'
 
 def reset_adjacency_bayesian():
     if 'bayesian_model' in st.session_state:
@@ -193,8 +192,8 @@ def bayesian_causality_display():
     load_value('num_bins', 5)
     st.slider("Number of bins", min_value=3, max_value=20, step=1, key='_num_bins', on_change=store_value, args=['num_bins'])
     bayesian_model = train_bayesian_model(st.session_state.selected_X, categorical_indicator, st.session_state.num_bins)
-    load_value('bayesian_model', bayesian_model)
-    plot_cpd_table(bayesian_model)
+    st.session_state.bayesian_model = bayesian_model
+    plot_cpd_table(st.session_state.bayesian_model)
 
 def get_default_adjacency_generator_name():
     if len(get_continuous_cols()) > 0:

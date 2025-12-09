@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from overrides import overrides
+from pgmpy.models import DiscreteBayesianNetwork
 from sklearn.base import ClassifierMixin
 from typing import Sequence, Tuple, Dict, Optional, List, Self
 from .ACFX import ACFX
@@ -37,7 +38,7 @@ class AcfxCustom(ACFX):
             causal_order: Optional[Sequence[int]]=None,
             adjacency_matrix: Optional[np.ndarray]=None, y=None, masked_features: Optional[List[str]] = None,
             categorical_indicator: Optional[List[bool]] = None, features_order: Optional[List[str]] = None,
-            bayesian_causality:bool = False, num_bins:Optional[int] = None) -> Self:
+            bayesian_causality:bool = False,  bayesian_model : Optional[DiscreteBayesianNetwork]=None, num_bins:Optional[int] = None) -> Self:
         """
         Fits explainer to the sampled data and blackbox model provided in the constructor
 
@@ -78,6 +79,10 @@ class AcfxCustom(ACFX):
             skip adjacency and calculate discrete bayesian network for causal loss.
             A discrete bayesian network will be fitted to calculate causal loss component.
 
+        bayesian_model:
+            optionally, provide pre-fitted discrete bayesian model, if bayesian_causality is True.
+            If it is not provided and=bayesian_causality, it will be fitted with the num_bins param
+
         num_bins:
             Number of bins to use for discretizing continuous features
 
@@ -87,4 +92,4 @@ class AcfxCustom(ACFX):
             raise ValueError("Optimizer must be given for AcfxCustom")
         self.optimizer = optimizer
         return super().fit(X, pbounds, causal_order, adjacency_matrix,
-                    y, masked_features,categorical_indicator, features_order)
+                    y, masked_features,categorical_indicator, features_order, bayesian_causality, bayesian_model, num_bins)

@@ -2,6 +2,7 @@ from typing import Sequence, Tuple, Dict, Optional, List, Self
 
 import numpy as np
 import pandas as pd
+from pgmpy.models import DiscreteBayesianNetwork
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.base import ClassifierMixin
 from abc import ABC, abstractmethod
@@ -42,7 +43,7 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
     def fit(self, X: pd.DataFrame, pbounds: Dict[str, Tuple[float, float]], causal_order: Optional[Sequence[int]]=None,
             adjacency_matrix: Optional[np.ndarray]=None, y=None, masked_features: Optional[List[str]] = None,
             categorical_indicator: Optional[List[bool]] = None, features_order: Optional[List[str]] = None,
-            bayesian_causality:bool = False, num_bins:Optional[int] = None) -> Self:
+            bayesian_causality:bool = False, bayesian_model : Optional[DiscreteBayesianNetwork]=None, num_bins:Optional[int] = None) -> Self:
         """
         Fits explainer to the sampled data and blackbox model provided in the constructor
 
@@ -80,6 +81,10 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
             skip adjacency and calculate discrete bayesian network for causal loss.
             A discrete bayesian network will be fitted to calculate causal loss component.
 
+        bayesian_model:
+            optionally, provide pre-fitted discrete bayesian model, if bayesian_causality is True.
+            If it is not provided and=bayesian_causality, it will be fitted with the num_bins param
+
         num_bins:
             Number of bins to use for discretizing continuous features (bayesian causality only)
 
@@ -96,7 +101,10 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
             self.causal_order = causal_order
         else:
             self.num_bins = num_bins
-            self.bayesian_model = train_bayesian_model(self.X, self.categorical_indicator, self.num_bins)
+            if bayesian_model is None:
+                self.bayesian_model = train_bayesian_model(self.X, self.categorical_indicator, self.num_bins)
+            else:
+                self.bayesian_model = bayesian_model
         self.pbounds = pbounds
         self.masked_features = masked_features
         return self
@@ -126,22 +134,31 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
         ----------
         query_instance:
             The instance to generate counterfactuals for.
+
         desired_class:
             The target class for the counterfactuals.
+
         num_counterfactuals:
             The number of counterfactual instances to generate.
+
         proximity_weight:
             Weight for proximity loss component
+
         sparsity_weight:
             Weight for sparsity loss component
+
         plausibility_weight:
             Weight for plausibility loss component
+
         diversity_weight:
             Weight for diversity loss component
+
         init_points:
             Number of initial points for Bayesian Optimization.
+
         n_iter:
             Number of iterations for Bayesian Optimization.
+            
         sampling_from_model:
             true if you want to generate samples from model after sampling from data and generating with relationship graph
 
