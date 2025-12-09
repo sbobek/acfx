@@ -42,21 +42,21 @@ def get_acfx():
 def fit_acfx(features_order) -> ACFX:
     acfx_instance = get_acfx()
     adjacency_matrix = None
-    casual_order = None
+    causal_order = None
     if 'adjacency_matrix' in st.session_state and st.session_state.adjacency_matrix is not None:
         adjacency_matrix = st.session_state.adjacency_matrix.to_numpy()
-    if 'casual_order' in st.session_state and st.session_state.casual_order is not None:
-        casual_order = st.session_state.casual_order
-        if all(isinstance(item, str) for item in casual_order):
+    if 'causal_order' in st.session_state and st.session_state.causal_order is not None:
+        causal_order = st.session_state.causal_order
+        if all(isinstance(item, str) for item in causal_order):
             all_columns = get_all_columns()
-            temp = [all_columns.index(column) for column in casual_order]
-            casual_order = temp
+            temp = [all_columns.index(column) for column in causal_order]
+            causal_order = temp
     if 'pbounds' not in st.session_state or not isinstance(st.session_state.pbounds, dict):
         raise TypeError("pbounds must be initialized in session state and be dict")
-    if (casual_order is None and adjacency_matrix is not None) or (casual_order is not None and adjacency_matrix is None):
-        raise KeyError('casual_order and adjacency_matrix must be specified together')
-    elif casual_order is not None and not isinstance(casual_order,list):
-        raise TypeError('casual_order must be a list')
+    if (causal_order is None and adjacency_matrix is not None) or (causal_order is not None and adjacency_matrix is None):
+        raise KeyError('causal_order and adjacency_matrix must be specified together')
+    elif causal_order is not None and not isinstance(causal_order,list):
+        raise TypeError('causal_order must be a list')
     elif adjacency_matrix is not None and not isinstance(adjacency_matrix,np.ndarray):
         raise TypeError('adjacency_matrix must be a numpy array')
     elif 'feature_types' not in st.session_state or st.session_state.feature_types is None:
@@ -67,7 +67,7 @@ def fit_acfx(features_order) -> ACFX:
     if isinstance(acfx_instance, AcfxCustom):
         return acfx_instance.fit(X=st.session_state.selected_X,
                                  adjacency_matrix=adjacency_matrix,
-                                 casual_order=casual_order,
+                                 causal_order=causal_order,
                                  pbounds=bounds,
                                  masked_features=get_masked_features(),
                                  categorical_indicator=get_categorical_indicator(),
@@ -76,7 +76,7 @@ def fit_acfx(features_order) -> ACFX:
                                                                  st.session_state.selected_X, bounds))
     return acfx_instance.fit(X= st.session_state.selected_X,
                              adjacency_matrix=adjacency_matrix,
-                             casual_order=casual_order,
+                             causal_order=causal_order,
                              pbounds=bounds,
                              masked_features=get_masked_features(),
                              categorical_indicator=get_categorical_indicator(),
