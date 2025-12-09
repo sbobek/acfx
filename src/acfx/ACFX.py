@@ -158,7 +158,7 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
 
         n_iter:
             Number of iterations for Bayesian Optimization.
-            
+
         sampling_from_model:
             true if you want to generate samples from model after sampling from data and generating with relationship graph
 

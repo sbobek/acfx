@@ -40,8 +40,41 @@ def get_acfx():
         raise ValueError("classifier_instance out of range")
     return acfx
 
-def fit_acfx_no_bayesian(acfx_instance : ACFX, adjacency_matrix,causal_order, bounds, features_order):
-    if isinstance(acfx_instance, AcfxCustom):
+# @st.cache_resource
+def fit_acfx(features_order) -> None | AcfxCustom | ACFX:
+    def fit_no_plausibility(acfx_instance: ACFX, bounds, features_order):
+        if isinstance(acfx_instance, AcfxCustom):
+            return acfx_instance.fit(X=st.session_state.selected_X,
+                                     adjacency_matrix=None,
+                                     causal_order=None,
+                                     pbounds=bounds,
+                                     masked_features=get_masked_features(),
+                                     categorical_indicator=get_categorical_indicator(),
+                                     features_order=features_order,
+                                     bayesian_causality=False,
+                                     optimizer=get_custom_optimizer(st.session_state.classifier_instance,
+                                                                    st.session_state.selected_X, bounds))
+        return acfx_instance.fit(X=st.session_state.selected_X,
+                                 adjacency_matrix=None,
+                                 causal_order=None,
+                                 pbounds=bounds,
+                                 masked_features=get_masked_features(),
+                                 categorical_indicator=get_categorical_indicator(),
+                                 features_order=features_order,
+                                 bayesian_causality=False)
+
+    def fit_acfx_lingam(acfx_instance: ACFX, adjacency_matrix, causal_order, bounds, features_order):
+        if isinstance(acfx_instance, AcfxCustom):
+            return acfx_instance.fit(X=st.session_state.selected_X,
+                                     adjacency_matrix=adjacency_matrix,
+                                     causal_order=causal_order,
+                                     pbounds=bounds,
+                                     masked_features=get_masked_features(),
+                                     categorical_indicator=get_categorical_indicator(),
+                                     features_order=features_order,
+                                     bayesian_causality=False,
+                                     optimizer=get_custom_optimizer(st.session_state.classifier_instance,
+                                                                    st.session_state.selected_X, bounds))
         return acfx_instance.fit(X=st.session_state.selected_X,
                                  adjacency_matrix=adjacency_matrix,
                                  causal_order=causal_order,
@@ -49,41 +82,29 @@ def fit_acfx_no_bayesian(acfx_instance : ACFX, adjacency_matrix,causal_order, bo
                                  masked_features=get_masked_features(),
                                  categorical_indicator=get_categorical_indicator(),
                                  features_order=features_order,
-                                 bayesian_causality=False,
-                                 optimizer= get_custom_optimizer(st.session_state.classifier_instance,
-                                                                 st.session_state.selected_X, bounds))
-    return acfx_instance.fit(X= st.session_state.selected_X,
-                             adjacency_matrix=adjacency_matrix,
-                             causal_order=causal_order,
-                             pbounds=bounds,
-                             masked_features=get_masked_features(),
-                             categorical_indicator=get_categorical_indicator(),
-                             features_order=features_order,
-                             bayesian_causality=False)
+                                 bayesian_causality=False)
 
-def fit_acfx_bayesian(acfx_instance : ACFX, bounds, features_order, num_bins:int, bayesian_model:DiscreteBayesianNetwork):
-    if isinstance(acfx_instance, AcfxCustom):
+    def fit_acfx_bayesian(acfx_instance: ACFX, bounds, features_order, num_bins: int,
+                          bayesian_model: DiscreteBayesianNetwork):
+        if isinstance(acfx_instance, AcfxCustom):
+            return acfx_instance.fit(X=st.session_state.selected_X,
+                                     pbounds=bounds,
+                                     masked_features=get_masked_features(),
+                                     categorical_indicator=get_categorical_indicator(),
+                                     features_order=features_order,
+                                     bayesian_causality=True,
+                                     num_bins=num_bins,
+                                     bayesian_model=bayesian_model,
+                                     optimizer=get_custom_optimizer(st.session_state.classifier_instance,
+                                                                    st.session_state.selected_X, bounds))
         return acfx_instance.fit(X=st.session_state.selected_X,
-                             pbounds=bounds,
-                             masked_features=get_masked_features(),
-                             categorical_indicator=get_categorical_indicator(),
-                             features_order=features_order,
-                             bayesian_causality=True,
-                             num_bins=num_bins,
-                             bayesian_model=bayesian_model,
-                             optimizer=get_custom_optimizer(st.session_state.classifier_instance,
-                                                                st.session_state.selected_X, bounds))
-    return acfx_instance.fit(X=st.session_state.selected_X,
-                             pbounds=bounds,
-                             masked_features=get_masked_features(),
-                             categorical_indicator=get_categorical_indicator(),
-                             features_order=features_order,
-                             bayesian_causality=True,
-                             num_bins=num_bins,
-                             bayesian_model=bayesian_model)
-
-# @st.cache_resource
-def fit_acfx(features_order) -> None | AcfxCustom | ACFX:
+                                 pbounds=bounds,
+                                 masked_features=get_masked_features(),
+                                 categorical_indicator=get_categorical_indicator(),
+                                 features_order=features_order,
+                                 bayesian_causality=True,
+                                 num_bins=num_bins,
+                                 bayesian_model=bayesian_model)
     acfx_instance = get_acfx()
     adjacency_matrix = None
     causal_order = None
@@ -92,8 +113,20 @@ def fit_acfx(features_order) -> None | AcfxCustom | ACFX:
     elif 'feature_types' not in st.session_state or st.session_state.feature_types is None:
         raise KeyError('feature_types must be initialized in session state here')
     bounds = get_pbounds()
-    if st.session_state.plausibility_loss_on and 'plausibility_loss' in st.session_state:
+    if not st.session_state.plausibility_loss_on or st.session_state.plausibility_loss == 0.0:
+        return fit_no_plausibility(acfx_instance=acfx_instance,
+                                   bounds=bounds,
+                                   features_order=features_order)
+    elif st.session_state.plausibility_loss_on and st.session_state.plausibility_loss > 0:
         if st.session_state.adjacency_generator_name == ADJACENCY_OPTION_DIRECTLINGAM:
+            if 'plausibility_loss' in st.session_state and st.session_state.plausibility_loss > 0.0:
+                if causal_order is None or adjacency_matrix is None:
+                    raise KeyError('causal_order and adjacency_matrix must be both specified')
+            elif causal_order is not None and not isinstance(causal_order,list):
+                raise TypeError('causal_order must be a list')
+            elif adjacency_matrix is not None and not isinstance(adjacency_matrix,np.ndarray):
+                raise TypeError('adjacency_matrix must be a numpy array')
+
             if 'adjacency_matrix' in st.session_state and st.session_state.adjacency_matrix is not None:
                 adjacency_matrix = st.session_state.adjacency_matrix.to_numpy()
             if 'causal_order' in st.session_state and st.session_state.causal_order is not None:
@@ -102,16 +135,8 @@ def fit_acfx(features_order) -> None | AcfxCustom | ACFX:
                     all_columns = get_all_columns()
                     temp = [all_columns.index(column) for column in causal_order]
                     causal_order = temp
-            if (causal_order is None and adjacency_matrix is not None) or (causal_order is not None and adjacency_matrix is None):
-                raise KeyError('causal_order and adjacency_matrix must be specified together')
-            elif 'plausibility_loss' in st.session_state and st.session_state.plausibility_loss > 0.0:
-                if causal_order is None or adjacency_matrix is None:
-                    raise KeyError('causal_order and adjacency_matrix must be both specified')
-            elif causal_order is not None and not isinstance(causal_order,list):
-                raise TypeError('causal_order must be a list')
-            elif adjacency_matrix is not None and not isinstance(adjacency_matrix,np.ndarray):
-                raise TypeError('adjacency_matrix must be a numpy array')
-            return fit_acfx_no_bayesian(acfx_instance=acfx_instance,
+
+            return fit_acfx_lingam(acfx_instance=acfx_instance,
                                         adjacency_matrix=adjacency_matrix,
                                         causal_order=causal_order,
                                         bounds=bounds,
@@ -199,9 +224,10 @@ if 'proximity_weight' not in st.session_state \
 elif 'classifier_name' not in st.session_state or st.session_state.classifier_name is None or \
         'classifier_instance' not in st.session_state or st.session_state.classifier_instance is None:
     st.warning("⚠️ Start by running 'Classifier Selection'")
-elif ('plausibility_loss_on' not in st.session_state or
+elif 'plausibility_loss_on' not in st.session_state or \
       ('adjacency_generator_name' not in st.session_state
-       and st.session_state.plausibility_loss_on == True)):
+       and st.session_state.plausibility_loss_on == True) \
+      or 'plausibility_loss' not in st.session_state:
     st.warning("⚠️ Start by running 'Adjacency Generation'")
 elif 'plausibility_loss_on' in st.session_state and \
         st.session_state.plausibility_loss_on == True and \
