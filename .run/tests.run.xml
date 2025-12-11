@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="pytest in user" type="tests" factoryName="py.test" nameIsGenerated="true">
+  <configuration default="false" name="tests" type="tests" factoryName="py.test">
     <module name="acfx" />
     <option name="ENV_FILES" value="" />
     <option name="INTERPRETER_OPTIONS" value="" />
