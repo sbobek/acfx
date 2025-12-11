@@ -20,10 +20,10 @@ dependencies = [
     "scipy==1.11.4",
     "scikit-learn==1.6.1",
     "optuna==4.2.0",
-    "interpret==0.6.9",
-    "interpret-core==0.6.9",
-    "overrides==7.4.0",
     "pgmpy==1.0.0"
+    "interpret==0.7.3",
+    "interpret-core==0.7.3",
+    "overrides==7.4.0"
 ]
 
 requires-python = ">=3.10"
