@@ -119,14 +119,6 @@ def fit_acfx(features_order) -> None | AcfxCustom | ACFX:
                                    features_order=features_order)
     elif st.session_state.plausibility_loss_on and st.session_state.plausibility_loss > 0:
         if st.session_state.adjacency_generator_name == ADJACENCY_OPTION_DIRECTLINGAM:
-            if 'plausibility_loss' in st.session_state and st.session_state.plausibility_loss > 0.0:
-                if causal_order is None or adjacency_matrix is None:
-                    raise KeyError('causal_order and adjacency_matrix must be both specified')
-            elif causal_order is not None and not isinstance(causal_order,list):
-                raise TypeError('causal_order must be a list')
-            elif adjacency_matrix is not None and not isinstance(adjacency_matrix,np.ndarray):
-                raise TypeError('adjacency_matrix must be a numpy array')
-
             if 'adjacency_matrix' in st.session_state and st.session_state.adjacency_matrix is not None:
                 adjacency_matrix = st.session_state.adjacency_matrix.to_numpy()
             if 'causal_order' in st.session_state and st.session_state.causal_order is not None:
@@ -135,6 +127,14 @@ def fit_acfx(features_order) -> None | AcfxCustom | ACFX:
                     all_columns = get_all_columns()
                     temp = [all_columns.index(column) for column in causal_order]
                     causal_order = temp
+
+            if 'plausibility_loss' in st.session_state and st.session_state.plausibility_loss > 0.0:
+                if causal_order is None or adjacency_matrix is None:
+                    raise KeyError('causal_order and adjacency_matrix must be both specified')
+            elif causal_order is not None and not isinstance(causal_order,list):
+                raise TypeError('causal_order must be a list')
+            elif adjacency_matrix is not None and not isinstance(adjacency_matrix,np.ndarray):
+                raise TypeError('adjacency_matrix must be a numpy array')
 
             return fit_acfx_lingam(acfx_instance=acfx_instance,
                                         adjacency_matrix=adjacency_matrix,

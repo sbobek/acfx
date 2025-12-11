@@ -29,11 +29,11 @@ def compute_causal_penalty_bayesian_adjacency(samples, model : DiscreteBayesianN
                 continue
 
             # Get parent values for this sample
-            parent_values = [sample[nodes.index(p)] for p in parents]
+            parent_values = [int(sample[nodes.index(p)]) for p in parents]
             node_value = sample[nodes.index(node)]
 
             # Find probability from CPD
-            prob = cpd.get_value(**{node: node_value, **dict(zip(parents, parent_values))})
+            prob = cpd.get_value(**{node: int(node_value), **dict(zip(parents, parent_values))})
             if np.abs(prob) < 1e-8:
                 prob = 1e-8
             sample_penalty += -np.log(prob)
