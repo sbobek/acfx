@@ -10,6 +10,8 @@ from utils.session_state import load_value, store_value
 def show_dane_wejsciowe():
     if 'classifier_instance' in st.session_state:
         del st.session_state['classifier_instance']
+    if 'classifier_name' in st.session_state:
+        del st.session_state['classifier_name']
     load_value('data_loaded')
     if st.session_state.data_loaded:
         st.subheader("📈 Input data")

@@ -2,7 +2,7 @@ from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
-from .abstract import ModelBasedCounterOptimizer
+from abstract import ModelBasedCounterOptimizer
 from overrides import overrides
 
 

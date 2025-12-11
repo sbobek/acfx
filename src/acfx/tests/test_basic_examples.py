@@ -45,6 +45,6 @@ def test_basic_example1(sample_data):
     adjacency_matrix = get_lingam(X_train)
     causal_order = get_causal_order(adjacency_matrix)
     features_order = X_train.columns.tolist()
-    explainer.fit(X=X_train, adjacency_matrix=adjacency_matrix, casual_order=causal_order, pbounds=pbounds,
+    explainer.fit(X=X_train, adjacency_matrix=adjacency_matrix, causal_order=causal_order, pbounds=pbounds,
                   y=y_train, features_order=features_order)
 

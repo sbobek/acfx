@@ -120,7 +120,7 @@ def lingam_causality_display():
             generate_adjacency(G, fig, ax)
 
     st.subheader("Edit Causal Order")
-    if len(get_continuous_cols()) > 0:
+    if len(get_continuous_cols()) != len(get_all_columns()):
         st.info(f"For categorical features, the adjacency is set to 0. "
                 f"These features are skipped for causality calculation as {ADJACENCY_OPTION_DIRECTLINGAM} doesn't support categorical features. "
                 f"Order of categorical features is irrelevant for evaluation. "
