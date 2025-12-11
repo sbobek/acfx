@@ -27,7 +27,7 @@ class CCStats:
     def save_total_stats(self, filename):
         self.get_total_stats().to_csv(filename, index=False)
 
-    def append_stats(self, method, cfs, dataset, explain_instance, model_clf, casual_model, desired_class, pbounds,
+    def append_stats(self, method, cfs, dataset, explain_instance, model_clf, causal_model, desired_class, pbounds,
                      execution_time):
         """
         Append statistical evaluation metrics to the global `stats` list.
@@ -63,7 +63,7 @@ class CCStats:
         if cfs is not None:
             record.append(np.mean(desired_class == model_clf.predict(cfs)))
             record.append(np.mean([p[desired_class] for p in model_clf.predict_proba(cfs)]))
-            self._append_loss(casual_model, categorical_indicator, cfs, dataset, desired_class, explain_instance,
+            self._append_loss(causal_model, categorical_indicator, cfs, dataset, desired_class, explain_instance,
                               model_clf, pbounds, record)
 
             mask = (desired_class == model_clf.predict(cfs))
@@ -71,7 +71,7 @@ class CCStats:
 
             if len(ovcfs) > 0:
                 record.append(len(ovcfs))
-                self._append_loss(casual_model, categorical_indicator, ovcfs, dataset, desired_class, explain_instance,
+                self._append_loss(causal_model, categorical_indicator, ovcfs, dataset, desired_class, explain_instance,
                                   model_clf, pbounds, record)
             else:
                 record.append(0)
@@ -86,15 +86,15 @@ class CCStats:
         return record
 
     @staticmethod
-    def _append_loss(casual_model, categorical_indicator, cfs, dataset, desired_class, explain_instance, model_clf,
+    def _append_loss(causal_model, categorical_indicator, cfs, dataset, desired_class, explain_instance, model_clf,
                      pbounds, record):
         record.append(np.mean([compute_yloss(model_clf, ce, desired_class)[0] for ce in cfs]))
         record.append(np.mean([compute_proximity_loss(ce.reshape(1, -1), explain_instance, pbounds=pbounds,
                                                       features_order=dataset.features,
                                                       categorical=categorical_indicator) for ce in cfs]))
         record.append(np.mean([compute_sparsity_loss(ce.reshape(1, -1), explain_instance) for ce in cfs]))
-        record.append(np.mean([compute_causal_penalty(ce.reshape(1, -1), casual_model.adjacency_matrix_,
-                                                      casual_model.causal_order_, categorical=categorical_indicator)
+        record.append(np.mean([compute_causal_penalty(ce.reshape(1, -1), causal_model.adjacency_matrix_,
+                                                      causal_model.causal_order_, categorical=categorical_indicator)
                                for ce in cfs]))
 
         cfs_as_np = np.array(cfs)

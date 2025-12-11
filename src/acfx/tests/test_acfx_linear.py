@@ -15,7 +15,7 @@ def sample_data():
     y = data.target
     return train_test_split(X, y, test_size=0.2, random_state=42)
 
-def test_counterfactual_has_casual_penalty(sample_data):
+def test_counterfactual_has_causal_penalty(sample_data):
     X_train, X_test, y_train, y_test = sample_data
     model = LogisticRegression()
     model.fit(X_train, y_train)
@@ -36,11 +36,11 @@ def test_counterfactual_has_casual_penalty(sample_data):
 
     causal_order = list(range(len(features_order)))
 
-    explainer.fit(X=X_test, pbounds=pbounds, casual_order=causal_order, adjacency_matrix=adjacency_matrix,
+    explainer.fit(X=X_test, pbounds=pbounds, causal_order=causal_order, adjacency_matrix=adjacency_matrix,
                   features_order=features_order)
 
     cf = explainer.counterfactual(desired_class=original_class, query_instance=query_instance)
 
-    cfs_casual_penalty = compute_causal_penalty(cf, adjacency_matrix, causal_order)
+    cfs_causal_penalty = compute_causal_penalty(cf, adjacency_matrix, causal_order)
 
-    assert cfs_casual_penalty is not None and cfs_casual_penalty > 0
+    assert cfs_causal_penalty is not None and cfs_causal_penalty > 0

@@ -22,8 +22,8 @@ def reset_adjacency_bayesian():
 def reset_adjacency_lingam():
     if 'adjacency_matrix' in st.session_state:
         del st.session_state.adjacency_matrix
-    if 'casual_order' in st.session_state:
-        del st.session_state.casual_order
+    if 'causal_order' in st.session_state:
+        del st.session_state.causal_order
     store_value('plausibility_loss_on')
 
 
@@ -56,7 +56,7 @@ def lingam_causality_display():
 
     def validate_adjacency_order():
         graph = nx.DiGraph(st.session_state.adjacency_matrix)
-        position = {node: i for i, node in enumerate(st.session_state.casual_order)}
+        position = {node: i for i, node in enumerate(st.session_state.causal_order)}
         violations = []
         for u, v in graph.edges():
             if position[u] <= position[v]:
@@ -66,15 +66,15 @@ def lingam_causality_display():
             for u, v in violations:
                 st.error(f"Edge {u} → {v} violates the order.")
 
-    def edit_adjacency_order(casual_order):
-        if 'casual_order' not in st.session_state:
+    def edit_adjacency_order(causal_order):
+        if 'causal_order' not in st.session_state:
             feature_names = st.session_state.selected_X.columns
-            ordered_features = list(map(lambda x: feature_names[x], casual_order))
-            st.session_state.casual_order = ordered_features.copy()
-        casual_order = sort_items(st.session_state.casual_order, direction="vertical")
-        if casual_order != st.session_state.casual_order:
-            st.session_state.casual_order = casual_order.copy()
-        # st.write("Casual order:", st.session_state.casual_order)
+            ordered_features = list(map(lambda x: feature_names[x], causal_order))
+            st.session_state.causal_order = ordered_features.copy()
+        causal_order = sort_items(st.session_state.causal_order, direction="vertical")
+        if causal_order != st.session_state.causal_order:
+            st.session_state.causal_order = causal_order.copy()
+        # st.write("causal order:", st.session_state.causal_order)
 
     def train_causal_model(X):
         continuous_cols = get_continuous_cols()
@@ -119,7 +119,7 @@ def lingam_causality_display():
         else:
             generate_adjacency(G, fig, ax)
 
-    st.subheader("Edit Casual Order")
+    st.subheader("Edit Causal Order")
     if len(get_continuous_cols()) > 0:
         st.info(f"For categorical features, the adjacency is set to 0. "
                 f"These features are skipped for causality calculation as {ADJACENCY_OPTION_DIRECTLINGAM} doesn't support categorical features. "
@@ -179,7 +179,7 @@ def bayesian_causality_display():
             if not cpd:
                 continue
             try:
-                print(cpd)
+                # print(cpd)
                 df = cpd.to_dataframe()
             except:
                 continue
@@ -212,8 +212,8 @@ else:
                    key="_plausibility_loss_on", on_change=reset_adjacency_lingam):
         if st.session_state.selected_X is None:
             raise ValueError("selected_X must be initialized in session state")
-        if 'casual_order_features' not in st.session_state:
-            st.session_state['casual_order_features'] = None
+        if 'causal_order_features' not in st.session_state:
+            st.session_state['causal_order_features'] = None
 
         load_value('adjacency_generator_name', get_default_adjacency_generator_name())
         st.selectbox("Adjacency generator:", [ADJACENCY_OPTION_DIRECTLINGAM, ADJACENCY_OPTION_BAYESIAN],

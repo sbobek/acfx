@@ -314,7 +314,7 @@ def generate_cfs(query_instance:np.ndarray, desired_class:int, adjacency_matrix:
             The target class for the counterfactuals.
         adjacency_matrix:
             The adjacency matrix representing the causal structure.
-        casual_order:
+        causal_order:
             The order of variables in the causal graph.
         proximity_weight:
             Weight for proximity loss component
