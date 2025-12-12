@@ -8,7 +8,7 @@ from pgmpy.estimators import MaximumLikelihoodEstimator
 from pgmpy.models import BayesianNetwork, DiscreteBayesianNetwork
 from sklearn.metrics import mutual_info_score
 from streamlit_sortables import sort_items
-from utils.features_by_type import get_continuous_cols, get_categorical_indicator, get_all_columns
+from utils.features_by_type import get_continuous_cols, get_categorical_indicator, get_all_columns, get_ordinal_cols,get_nominal_cols
 from utils.session_state import store_value, load_value
 from acfx.evaluation.bayesian_model import train_bayesian_model
 from utils.const import ADJACENCY_OPTION_DIRECTLINGAM,ADJACENCY_OPTION_BAYESIAN
@@ -120,7 +120,7 @@ def lingam_causality_display():
             generate_adjacency(G, fig, ax)
 
     st.subheader("Edit Causal Order")
-    if len(get_continuous_cols()) != len(get_all_columns()):
+    if len(get_continuous_cols()) > 0 and (len(get_ordinal_cols()) > 0 or len(get_nominal_cols()) > 0):
         st.info(f"For categorical features, the adjacency is set to 0. "
                 f"These features are skipped for causality calculation as {ADJACENCY_OPTION_DIRECTLINGAM} doesn't support categorical features. "
                 f"Order of categorical features is irrelevant for evaluation. "
