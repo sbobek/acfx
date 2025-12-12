@@ -246,3 +246,4 @@ fabric.properties
 cache
 **/progress.txt
 **/progress_error.txt
+/.run/
