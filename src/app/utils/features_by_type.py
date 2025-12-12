@@ -12,11 +12,6 @@ def get_nominal_cols():
 def get_ordinal_cols():
     return _get_cols_by_type("ordinal")
 
-# def get_categorical_indicator() -> list[bool]:
-#     X = st.session_state.selected_X
-#     feature_types = st.session_state.feature_types
-#     return [col in feature_types.loc[feature_types['Type'] != 'continuous', 'Column Name'].values for col in X.columns]
-
 def get_categorical_indicator() -> list[bool]:
     is_categorical = {row['Column Name']: row['Type'] != 'continuous'  for _, row in st.session_state.feature_types.iterrows()}
     if 'data' in st.session_state.data:
