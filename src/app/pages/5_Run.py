@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -254,23 +255,24 @@ else:
         else:
             acfx = fit_acfx(list(query_instances.columns))
             with st.spinner("Evaluating counterfactuals..."):
-                for i, query_instance in query_instances.iterrows():
-                    cfs = acfx.counterfactual(
-                                     query_instance=query_instance.array,
-                                     desired_class=get_numeric_desired_class(),
-                                     num_counterfactuals=st.session_state.num_counterfactuals,
-                                     proximity_weight=st.session_state.proximity_weight,
-                                     plausibility_weight=st.session_state.plausibility_loss,
-                                     diversity_weight=st.session_state.diversity_weight,
-                                     init_points=st.session_state.init_points,
-                                     n_iter=st.session_state.n_iter,
-                                     sampling_from_model=st.session_state.sampling_from_model)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=UserWarning)
+                    for i, query_instance in query_instances.iterrows():
+                        cfs = acfx.counterfactual(
+                                         query_instance=query_instance.array,
+                                         desired_class=get_numeric_desired_class(),
+                                         num_counterfactuals=st.session_state.num_counterfactuals,
+                                         proximity_weight=st.session_state.proximity_weight,
+                                         plausibility_weight=st.session_state.plausibility_loss,
+                                         diversity_weight=st.session_state.diversity_weight,
+                                         init_points=st.session_state.init_points,
+                                         n_iter=st.session_state.n_iter,
+                                         sampling_from_model=st.session_state.sampling_from_model)
 
-                    cfs = pd.DataFrame(cfs, columns=list(query_instances.columns))
-                    cfs.index = [f"Counterfactual {i+1}" for i in range(len(cfs))]
-                    query_instance_with_index = pd.DataFrame([query_instance])
-                    query_instance_with_index.index = ["Query Instance"]
-                    st.subheader(f"📊 RESULT {i+1}")
-                    st.dataframe(pd.concat([query_instance_with_index,cfs]), use_container_width=True)
-
+                        cfs = pd.DataFrame(cfs, columns=list(query_instances.columns))
+                        cfs.index = [f"Counterfactual {i+1}" for i in range(len(cfs))]
+                        query_instance_with_index = pd.DataFrame([query_instance])
+                        query_instance_with_index.index = ["Query Instance"]
+                        st.subheader(f"📊 RESULT {i+1}")
+                        st.dataframe(pd.concat([query_instance_with_index,cfs]), use_container_width=True)
 

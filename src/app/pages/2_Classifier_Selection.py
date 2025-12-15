@@ -44,7 +44,7 @@ def init_classifier():
         else:
             raise IndexError("classifier_name out of range")
 
-        classifier = classifier.fit(st.session_state.selected_X.to_numpy(),st.session_state.y)
+        classifier = classifier.fit(st.session_state.selected_X, st.session_state.y)
 
     st.session_state.classifier_instance = classifier
 
