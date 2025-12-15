@@ -1,6 +1,6 @@
 import random
 from typing import Sequence, Dict, Tuple, Optional, List
-
+import traceback
 import numpy as np
 import optuna
 import pandas as pd
@@ -126,6 +126,7 @@ def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal
                 return cf
             except Exception as ex:
                 print(f'optimize_proba error occured: {ex}')
+                print(traceback.format_exc())
                 return None
         print(
             f'Sampling from model... Already sampled {sample_size} from {Xdesired.shape[0]} possible in data sampling...')
