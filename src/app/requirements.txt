@@ -2,4 +2,4 @@ streamlit==1.48.0
 streamlit-sortables==0.3.1
 networkx==3.4.2
 lingam==1.9.1
-acfx==0.3.1
+acfx==0.3.2
