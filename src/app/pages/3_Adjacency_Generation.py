@@ -12,7 +12,7 @@ from utils.features_by_type import get_continuous_cols, get_categorical_indicato
 from utils.session_state import store_value, load_value
 from acfx.evaluation.bayesian_model import train_bayesian_model
 from utils.const import ADJACENCY_OPTION_DIRECTLINGAM,ADJACENCY_OPTION_BAYESIAN
-
+import io
 
 def reset_adjacency_bayesian():
     if 'bayesian_model' in st.session_state:
@@ -38,6 +38,15 @@ def set_zoom(ax):
     limit = 1.0 * st.session_state.zoom_factor
     ax.set_xlim(-limit, limit)
     ax.set_ylim(-limit, limit)
+
+@st.cache_data
+def get_graph_data(_G:nx.DiGraph) -> bytes:
+    # for node in _G.nodes():
+    #     _G.nodes[node]['label'] = str(node)
+    buffer = io.BytesIO()
+    nx.write_graphml(_G, buffer)
+    graphml_data = buffer.getvalue()
+    return graphml_data
 
 def lingam_causality_display():
     def generate_adjacency(graph, fig, ax):
@@ -118,6 +127,12 @@ def lingam_causality_display():
             log_not_dag(G)
         else:
             generate_adjacency(G, fig, ax)
+            st.download_button(
+                label="Download Graph as GraphML",
+                data=get_graph_data(G),
+                file_name="network_export_lingam.graphml",
+                mime="application/xml"
+            )
 
     st.subheader("Edit Causal Order")
     if len(get_continuous_cols()) > 0 and (len(get_ordinal_cols()) > 0 or len(get_nominal_cols()) > 0):
@@ -171,6 +186,13 @@ def bayesian_causality_display():
 
             ax.set_title("Bayesian Network Graph")
             st.pyplot(fig)
+
+            st.download_button(
+                label="Download Graph as GraphML",
+                data=get_graph_data(G),
+                file_name="network_export_bayesian.graphml",
+                mime="application/xml"
+            )
 
         num_bins = st.session_state['num_bins']
         st.info(f'All continuous features were discretized to {num_bins} bins.')
