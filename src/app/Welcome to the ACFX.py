@@ -14,7 +14,7 @@ This app is designed to help you experiment with the ACFX API in user-friendly e
 Use the sidebar to navigate to:
 - **Data Selection**: Load your dataset.
 - **Classifier Selection**: Choose a predictive model.
-- **Adjacency Generation**: Generate adjacency matrix and casual order. Initially, the Lingam will be used, but you can edit its evaluation result.
+- **Adjacency Generation**: Generate adjacency matrix and causal order. Initially, the Lingam will be used, but you can edit its evaluation result.
 
 ---
 

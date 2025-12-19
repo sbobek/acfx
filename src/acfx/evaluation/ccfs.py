@@ -1,23 +1,27 @@
 import random
 from typing import Sequence, Dict, Tuple, Optional, List
-
+import traceback
 import numpy as np
 import optuna
 import pandas as pd
+
 from interpret.glassbox import ExplainableBoostingClassifier
+from pgmpy.models import DiscreteBayesianNetwork
 from sklearn.base import ClassifierMixin
 from sklearn.linear_model._base import LinearClassifierMixin
 from ..abstract import ModelBasedCounterOptimizer
 from ..abstract import OptimizerType
 from .LogisticRegressionCounterOptimizer import LogisticRegressionCounterOptimizer
-from .loss import compute_loss
+from .loss import compute_loss, compute_loss_bayesian
 from .EBMCounterOptimizer import EBMCounterOptimizer
+from .bayesian_model import discretize_ndarray
 
 def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight, sparsity_weight,
                          plausibility_weight,
                          diversity_weight, bounds, model, optimizer:ModelBasedCounterOptimizer, sampling_from_model:bool,
                          categorical_indicator=None, features_order=None, masked_features=None, cfs=[], X=None,
-                         init_points=5, n_iter=1000):
+                         init_points=5, n_iter=1000, bayesian_causality : bool = False, bins_num: Optional[int] = None,
+                         bayesian_model: Optional[DiscreteBayesianNetwork] = None):
     """
     Generate a single counterfactual that minimizes the loss function using Optuna.
     """
@@ -48,11 +52,29 @@ def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal
         else:
             cfst = cf
 
-        loss = compute_loss(model, cf, query_instance, desired_class, adjacency_matrix,
-                            causal_order, proximity_weight, sparsity_weight, plausibility_weight,
-                            diversity_weight, pbounds=bounds, features_order=features_order,
-                            masked_features=masked_features,
-                            categorical=categorical_indicator, allcfs=cfst)
+        if not bayesian_causality:
+            loss = compute_loss(model,
+                                cf,
+                                query_instance,
+                                desired_class,
+                                adjacency_matrix,
+                                causal_order,
+                                proximity_weight,
+                                sparsity_weight,
+                                plausibility_weight,
+                                diversity_weight,
+                                pbounds=bounds,
+                                features_order=features_order,
+                                masked_features=masked_features,
+                                categorical=categorical_indicator,
+                                allcfs=cfst)
+        else:
+            categorized = discretize_ndarray(cf, categorical_indicator, bins_num)
+            loss = compute_loss_bayesian(model, cf, categorized, query_instance, desired_class, bayesian_model,
+                                         proximity_weight, sparsity_weight, plausibility_weight,
+                                diversity_weight, pbounds=bounds, features_order=features_order,
+                                masked_features=masked_features,
+                                categorical=categorical_indicator, allcfs=cfst)
         # Return the first value in the loss array, Optuna needs a single scalar value to minimize
         return -loss[0, 1]
 
@@ -104,6 +126,7 @@ def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal
                 return cf
             except Exception as ex:
                 print(f'optimize_proba error occured: {ex}')
+                print(traceback.format_exc())
                 return None
         print(
             f'Sampling from model... Already sampled {sample_size} from {Xdesired.shape[0]} possible in data sampling...')
@@ -158,7 +181,8 @@ def _generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_
                         plausibility_weight,
                         diversity_weight, bounds, model, categorical_indicator=None, features_order=None,
                         masked_features=None, cfs=[], X=None, init_points=5, n_iter=1000,
-                        optimizer_type: OptimizerType = OptimizerType.EBM, optimizer=None, sampling_from_model=True):
+                        optimizer_type: OptimizerType = OptimizerType.EBM, optimizer=None, sampling_from_model=True,
+                        bayesian_causality : bool = False, bins_num: Optional[int] = None, bayesian_model: Optional[DiscreteBayesianNetwork] = None):
 
     def is_null_or_empty(var):
         if var is None:
@@ -186,21 +210,96 @@ def _generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_
         else:
             raise NotImplementedError()
 
+    if bayesian_causality:
+        if bayesian_model is None:
+            raise ValueError("bayesian_model must be provided for bayesian causal loss mode")
+        if bins_num is None:
+            raise ValueError("bins_num must be provided for bayesian causal loss mode")
     if is_null_or_empty(categorical_indicator):
         categorical_indicator = [False] * len(bounds)
     if is_null_or_empty(features_order):
         features_order = list(bounds.keys())
     if is_null_or_empty(masked_features):
         masked_features = features_order
-
     return __generate_single_cf(query_instance=query_instance, desired_class=desired_class, adjacency_matrix=adjacency_matrix,
                                 causal_order=causal_order, proximity_weight=proximity_weight, sparsity_weight=sparsity_weight,
                                 plausibility_weight=plausibility_weight, diversity_weight=diversity_weight, bounds=bounds,
                                 model=model, optimizer=get_optimizer(), sampling_from_model= sampling_from_model,
                                 categorical_indicator=categorical_indicator, features_order= features_order,
-                                masked_features=masked_features, cfs=cfs, X= X, init_points= init_points, n_iter=n_iter)
+                                masked_features=masked_features, cfs=cfs, X= X, init_points= init_points, n_iter=n_iter, bayesian_causality= bayesian_causality,
+                                bins_num=bins_num, bayesian_model = bayesian_model)
 
-def generate_cfs(query_instance:np.ndarray, desired_class:int, adjacency_matrix:np.ndarray, casual_order : Sequence[int], proximity_weight : float,
+
+def generate_cfs_bayesian(query_instance:np.ndarray, desired_class:int, bayesian_model: DiscreteBayesianNetwork, categorical_bins_num: int,
+                          proximity_weight : float, sparsity_weight: float, plausibility_weight: float, diversity_weight: float,
+                          bounds:Dict[str, Tuple[float, float]], model:ClassifierMixin, features_order:Optional[List[str]] =None,
+                 masked_features:Optional[List[str]] =None, categorical_indicator:Optional[List[bool]] =None, X:Optional[pd.DataFrame] =None,
+                 num_cfs:int=1, init_points:int=10, n_iter:int=1000, sampling_from_model:bool=False,
+                 optimizer_type : OptimizerType = OptimizerType.EBM, optimizer : ModelBasedCounterOptimizer=None)-> np.ndarray:
+    """
+    Generate multiple counterfactuals that minimize the loss function using Bayesian Optimization and bayesian network to calculate causal loss.
+
+    Parameters:
+        query_instance:
+            The instance to generate counterfactuals for.
+        desired_class:
+            The target class for the counterfactuals.
+        bayesian_model:
+            Fitted bayesian network
+        categorical_bins_num:
+            Number of bins that were used to discretize continuous features.
+        proximity_weight:
+            Weight for proximity loss component
+        sparsity_weight:
+            Weight for sparsity loss component
+        plausibility_weight:
+            Weight for plausibility loss component
+        diversity_weight:
+            Weight for diversity loss component
+        bounds:
+            The bounds for each feature to search over (dict with feature names as keys and tuple (min, max) as values).
+        model:
+            The predictive model used to predict class labels.
+        features_order:
+            order of features in query instance
+        masked_features:
+            masked features vector (features to skip)
+        categorical_indicator:
+            True at the index where the variable should be treated as categorical
+        num_cfs:
+            The number of counterfactual instances to generate.
+        init_points:
+            Number of initial points for Bayesian Optimization.
+        n_iter:
+            Number of iterations for Bayesian Optimization.
+        X:
+            training dataset to sample from.
+        sampling_from_model:
+            true if you want to generate samples from model after sampling from data and generating with relationship graph
+        optimizer_type:
+            type of optimizer used on model to generate counterfactuals. If you use OptimizerType.Custom, you need to provide optimizer instance
+        optimizer:
+            instance of optimizer (use for optimizer_type = OptimizerType.Custom)
+
+    Returns
+    -------
+    np.ndarray:
+        The generated counterfactuals that minimize the loss function.
+    """
+    cfs = []
+    for _ in range(num_cfs):
+        cf = _generate_single_cf(query_instance, desired_class, None,
+                                 None, proximity_weight, sparsity_weight,
+                                 plausibility_weight, diversity_weight,
+                                 bounds, model, categorical_indicator, features_order, masked_features=masked_features,
+                                 cfs=cfs, X=X, init_points=init_points, n_iter=n_iter,
+                                 sampling_from_model=sampling_from_model, optimizer_type=optimizer_type,
+                                 optimizer=optimizer, bayesian_causality=True, bins_num=categorical_bins_num, bayesian_model=bayesian_model)
+        cfs.append(cf)
+
+    return np.vstack(cfs)
+
+def generate_cfs(query_instance:np.ndarray, desired_class:int, adjacency_matrix:np.ndarray, causal_order : Sequence[int], proximity_weight : float,
                  sparsity_weight: float, plausibility_weight: float, diversity_weight: float, bounds:Dict[str, Tuple[float, float]],
                  model:ClassifierMixin, features_order:Optional[List[str]] =None,
                  masked_features:Optional[List[str]] =None, categorical_indicator:Optional[List[bool]] =None, X:Optional[pd.DataFrame] =None,
@@ -216,7 +315,7 @@ def generate_cfs(query_instance:np.ndarray, desired_class:int, adjacency_matrix:
             The target class for the counterfactuals.
         adjacency_matrix:
             The adjacency matrix representing the causal structure.
-        casual_order:
+        causal_order:
             The order of variables in the causal graph.
         proximity_weight:
             Weight for proximity loss component
@@ -259,11 +358,12 @@ def generate_cfs(query_instance:np.ndarray, desired_class:int, adjacency_matrix:
     cfs = []
     for _ in range(num_cfs):
         cf = _generate_single_cf(query_instance, desired_class, adjacency_matrix,
-                                 casual_order, proximity_weight, sparsity_weight,
+                                 causal_order, proximity_weight, sparsity_weight,
                                  plausibility_weight, diversity_weight,
                                  bounds, model, categorical_indicator, features_order, masked_features=masked_features,
                                  cfs=cfs, X=X, init_points=init_points, n_iter=n_iter,
-                                 sampling_from_model=sampling_from_model, optimizer_type=optimizer_type, optimizer=optimizer)
+                                 sampling_from_model=sampling_from_model, optimizer_type=optimizer_type,
+                                 optimizer=optimizer, bayesian_causality=False)
         cfs.append(cf)
 
     return np.vstack(cfs)

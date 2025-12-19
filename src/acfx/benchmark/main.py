@@ -72,7 +72,7 @@ def evaluate(use_suite:bool, time_limit:int, model_time_limit:int):
 
             try:
                 signal.alarm(model_time_limit)  # one hour for causal model
-                print('Training casual model...', end='')
+                print('Training causal model...', end='')
 
                 causal_model = load_or_dump_cached_file(cache_dir, f'causal_model-{task_id}.pkl', cached_data=None)
                 if causal_model is None:

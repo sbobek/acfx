@@ -1,15 +1,58 @@
 import numpy as np
+from pgmpy.models import DiscreteBayesianNetwork
 from scipy.spatial.distance import pdist, squareform
 
+def compute_causal_penalty_bayesian_adjacency(samples, model : DiscreteBayesianNetwork):
+    """
+    Compute causal penalty for counterfactual samples based on Bayesian Network CPDs.
 
-def compute_causal_penalty(samples, adjacency_matrix, sample_order, categorical=None):
+    Parameters:
+    - samples: np.ndarray or pd.DataFrame (num_samples x num_features). All features must be categorical
+    - model: fitted BayesianNetwork
+
+    Returns:
+    - penalty: float, average negative log-likelihood of samples under the model
+    """
+    penalty = 0.0
+    n_samples = len(samples)
+    nodes = list(model.nodes())
+    for idx in range(n_samples):
+        sample = samples[idx]
+        sample_penalty = 0.0
+
+        for node in nodes:
+            parents = model.get_parents(node)
+            if not parents:
+                continue
+            cpd = model.get_cpds(node)
+            if not cpd:
+                continue
+
+            # Get parent values for this sample
+            parent_values = [int(sample[nodes.index(p)]) for p in parents]
+            node_value = sample[nodes.index(node)]
+
+            # Find probability from CPD
+            prob = cpd.get_value(**{node: int(node_value), **dict(zip(parents, parent_values))})
+            if np.abs(prob) < 1e-8:
+                prob = 1e-8
+            sample_penalty += -np.log(prob)
+
+        penalty += sample_penalty
+
+    return penalty / n_samples
+
+def compute_causal_penalty(samples, adjacency_matrix, sample_order, categorical=None, skip_categorical=True):
     """
     Calculate the inconsistency of samples with the given adjacency matrix.
 
     Parameters:
+    - samples: np.ndarray, counterfactual samples to evaluate the causal penalty for
     - adjacency_matrix: np.ndarray, the adjacency matrix from DirectLiNGAM
     - samples: np.ndarray, the samples to evaluate (num_samples x num_features)
-
+    - categorical: bool, categorical or continuous indicator
+    - skip_categorical: bool, skip categorical indicator - when adjacency matrix is not categorical-feature effective.
+    Even if the flag is true, we want the sample_order to be the same length as number of features in samples to keep the indexing
     Returns:
     - inconsistency: float, a measure of how inconsistent the samples are with the adjacency matrix
     """
@@ -19,18 +62,23 @@ def compute_causal_penalty(samples, adjacency_matrix, sample_order, categorical=
     if categorical is None:
         categorical = [False] * len(sample_order)
     # Iterate through each feature and its causal parents
+    included_to_loss = 0
     for i in sample_order:
+        if skip_categorical and categorical[i]:
+            continue
+        included_to_loss += 1
         parents = np.where(adjacency_matrix[i, :] != 0)[0]
         if len(parents) > 0:
             # Predicted values based on parents
             predicted_values = np.dot(samples[:, parents], adjacency_matrix[i, parents])
             # Calculate the inconsistency as the mean squared error
-            mse = (samples[:, i] - predicted_values) ** 2
             if categorical[i]:
-                mse = min((1, mse))
+                mse = (samples[:, i].round() != predicted_values.round()).astype(float)
+            else:
+                mse = (samples[:, i] - predicted_values) ** 2
             inconsistency += mse
 
-    return np.sqrt(np.mean(inconsistency)) / len(sample_order)
+    return np.sqrt(np.mean(inconsistency)) / max(1, included_to_loss)
 
 
 def compute_yloss(model, cfs, desired_class):
@@ -42,8 +90,6 @@ def compute_yloss(model, cfs, desired_class):
     yloss = np.maximum(0, maxvalue - predicted_value[:, int(desired_class)])
     return yloss,maxvalue
 
-
-# data has to be normalized and proximity will be consine similarity in that casse
 
 def compute_proximity_loss(cfs, query_instance, pbounds, features_order=None, feature_weights=None, categorical=None):
     """Compute weighted distance between two vectors."""
@@ -94,31 +140,73 @@ def compute_diversity_loss(cfs, low=1e-6, high=1e-5):
     determinant = np.linalg.det(transformed_matrix)
     return determinant
 
+def _compute_loss_common(
+    yloss, conditional_term,
+    proximity_loss, sparsity_loss, plausibility_loss, diversity_loss,
+    proximity_weight, sparsity_weight, plausibility_weight, diversity_weight,
+    cfs
+):
+    """Helper to compute final loss array."""
+    total_loss = yloss + conditional_term * (
+        (diversity_loss * diversity_weight) +
+        (proximity_weight * proximity_loss) +
+        (sparsity_weight * sparsity_loss) +
+        (plausibility_loss * plausibility_weight)
+    )
+    loss = np.reshape(np.array(total_loss), (-1, 1))
+    index = np.reshape(np.arange(len(cfs)), (-1, 1))
+    return np.concatenate([index, loss], axis=1)
 
-def compute_loss(model, cfs, query_instance, desired_class, adjency_matrix, causal_order,
-                 proximity_weight, sparsity_weight, plausability_weight, diversity_weight, pbounds, features_order,
-                 masked_features, categorical=None, allcfs=None):
-    """Computes the overall loss"""
+
+def compute_loss_generic(
+    model, cfs, query_instance, desired_class,
+    proximity_weight, sparsity_weight, plausibility_weight, diversity_weight,
+    pbounds, features_order, categorical=None, allcfs=None,
+    plausibility_fn=None
+):
+    """Generic loss computation with injected plausibility function."""
     if allcfs is None:
         allcfs = []
 
-    yloss, maxyloss = compute_yloss(model, cfs, desired_class)
+    yloss, _ = compute_yloss(model, cfs, desired_class)
     conditional_term = 1.0 / (
-                yloss + 1 + sum([proximity_weight, sparsity_weight, plausability_weight, diversity_weight]))
+        yloss + 1 + sum([proximity_weight, sparsity_weight, plausibility_weight, diversity_weight])
+    )
 
-    proximity_loss = compute_proximity_loss(cfs, query_instance, pbounds, features_order=features_order,
-                                            categorical=categorical) \
-        if proximity_weight > 0 else 0.0
+    proximity_loss = compute_proximity_loss(
+        cfs, query_instance, pbounds, features_order=features_order, categorical=categorical
+    ) if proximity_weight > 0 else 0.0
+
     sparsity_loss = compute_sparsity_loss(cfs, query_instance) if sparsity_weight > 0 else 0.0
-    plausability_loss = compute_causal_penalty(cfs, adjency_matrix, causal_order,
-                                               categorical=categorical) if plausability_weight > 0 else 0
-    diversity_loss = 1 - np.abs(compute_diversity_loss(allcfs)) if len(allcfs) > 1 and diversity_weight > 0 else 0
-    # print(f'DL: {diversity_loss} for len of cfs {len(allcfs)}, and PrxL: {proximity_loss} and PL {plausability_loss} and sparl: {sparsity_loss}')
 
-    loss = np.reshape(
-        np.array(yloss + conditional_term * ((diversity_loss * diversity_weight) + (proximity_weight * proximity_loss) +
-                                             (sparsity_weight * sparsity_loss) + (
-                                                         plausability_loss * plausability_weight))), (-1, 1))
-    index = np.reshape(np.arange(len(cfs)), (-1, 1))
-    loss = np.concatenate([index, loss], axis=1)
-    return loss
+    plausibility_loss = plausibility_fn() if plausibility_weight > 0 else 0.0
+
+    diversity_loss = 1 - np.abs(compute_diversity_loss(allcfs)) if len(allcfs) > 1 and diversity_weight > 0 else 0.0
+
+    return _compute_loss_common(
+        yloss, conditional_term,
+        proximity_loss, sparsity_loss, plausibility_loss, diversity_loss,
+        proximity_weight, sparsity_weight, plausibility_weight, diversity_weight,
+        cfs
+    )
+
+def compute_loss_bayesian(model, cfs, cfs_categorized, query_instance, desired_class, bayesian_model : DiscreteBayesianNetwork,
+                          proximity_weight, sparsity_weight, plausibility_weight, diversity_weight,
+                          pbounds, features_order, masked_features, categorical=None, allcfs=None):
+    return compute_loss_generic(
+        model, cfs, query_instance, desired_class,
+        proximity_weight, sparsity_weight, plausibility_weight, diversity_weight,
+        pbounds, features_order, categorical, allcfs,
+        plausibility_fn=lambda: compute_causal_penalty_bayesian_adjacency(cfs_categorized, bayesian_model)
+    )
+
+def compute_loss(model, cfs, query_instance, desired_class, adjency_matrix, causal_order,
+                 proximity_weight, sparsity_weight, plausibility_weight, diversity_weight,
+                 pbounds, features_order, masked_features, categorical=None, allcfs=None):
+    return compute_loss_generic(
+        model, cfs, query_instance, desired_class,
+        proximity_weight, sparsity_weight, plausibility_weight, diversity_weight,
+        pbounds, features_order, categorical, allcfs,
+        plausibility_fn=lambda: compute_causal_penalty(cfs, adjency_matrix, causal_order, categorical=categorical)
+    )
+

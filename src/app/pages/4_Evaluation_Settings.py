@@ -1,14 +1,17 @@
 import streamlit as st
+from utils.const import ADJACENCY_OPTION_DIRECTLINGAM,ADJACENCY_OPTION_BAYESIAN
 from utils.session_state import store_value, load_value
 from utils.key_helper import calc_pbounds, get_pbounds_key, get_masked_feature_key
-
 
 if 'classifier_name' not in st.session_state or st.session_state.classifier_name is None:
     st.warning("⚠️ Start by initializing classifier in 'Classifier selection'")
 elif 'plausibility_loss_on' not in st.session_state or st.session_state.plausibility_loss_on is None:
     st.warning("⚠️ Start by visiting 'Adjacency Generation'")
 elif st.session_state.plausibility_loss_on \
-      and ('adjacency_matrix' not in st.session_state or st.session_state.adjacency_matrix is None):
+      and ((st.session_state.adjacency_generator_name == ADJACENCY_OPTION_DIRECTLINGAM
+            and ('adjacency_matrix' not in st.session_state or st.session_state.adjacency_matrix is None))
+           or (st.session_state.adjacency_generator_name == ADJACENCY_OPTION_BAYESIAN
+               and ('bayesian_model' not in st.session_state or st.session_state.bayesian_model is None)) ):
     st.warning("⚠️ Start by initializing adjacency matrix in 'Adjacency Generation'")
 else:
     if st.session_state.selected_X is None:
@@ -19,18 +22,31 @@ else:
     load_value('pbounds', initial_pbounds)
     st.subheader("The bounds for each feature to search over")
     for feature_name, interval in st.session_state.pbounds.items():
-        min = interval[0]
-        max = interval[1]
+        min, max = interval[0], interval[1]
         pbounds_key = get_pbounds_key(feature_name)
         load_value(pbounds_key, (min, max))
-        start,end=st.slider(
-            feature_name,
-            min_value=float(min - 3*abs(max-min)),
-            max_value=float(max + 3*abs(max-min)),
-            key=f"_{pbounds_key}",
-            on_change=store_value,
-            args= [pbounds_key]
-        )
+        if feature_name in categorical_indicator:
+            if min == max:
+                st.session_state[f"_{pbounds_key}"] = (min,max)
+                st.info(f"Feature with name '{feature_name}' was detected to have only one value in provided dataset: {min}")
+            else:
+                start, end = st.slider(
+                feature_name,
+                min_value=min,
+                max_value=max,
+                key=f"_{pbounds_key}",
+                on_change=store_value,
+                args= [pbounds_key]
+                )
+        else:
+            start,end=st.slider(
+                feature_name,
+                min_value=float(min - 3*abs(max-min)),
+                max_value=float(max + 3*abs(max-min)),
+                key=f"_{pbounds_key}",
+                on_change=store_value,
+                args= [pbounds_key]
+            )
         masked_feature_key = get_masked_feature_key(feature_name)
         load_value(masked_feature_key, False)
         st.checkbox(label=f"Mark **{feature_name}** as masked feature", key=f'_{masked_feature_key}',

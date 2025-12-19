@@ -1,3 +1,4 @@
+import numbers
 from typing import List, Dict
 
 import pandas as pd
@@ -17,7 +18,7 @@ class LogisticRegressionCounterOptimizer(ModelBasedCounterOptimizer):
                 isinstance(k, str) and
                 isinstance(v, tuple) and
                 len(v) == 2 and
-                all(isinstance(i, float) or isinstance(i,int) for i in v)
+                all(isinstance(i, numbers.Number) for i in v)
                 for k, v in feature_bounds.items()
         ):
             raise AttributeError("feature_bounds must be a dict with string keys and tuple of two floats as values")
@@ -25,31 +26,6 @@ class LogisticRegressionCounterOptimizer(ModelBasedCounterOptimizer):
         self.__feature_bounds = feature_bounds
         self.model = model
         self.X = X
-
-    # @overrides
-    # def optimize_proba(self, target_class : int, feature_masked: List[str]):
-    #     for index, instance in self.X.iterrows():
-    #         coefficients = self.model.coef_[target_class]  # Extract model coefficients for the target class
-    #
-    #         # Identify the direction of optimization
-    #         direction = np.sign(coefficients)
-    #
-    #         optimized_instance = instance.copy()
-    #
-    #         if len(direction) < 0:
-    #             return optimized_instance
-    #
-    #         for i, feature_name in enumerate(self.X.columns):
-    #             if feature_name in feature_masked:
-    #                 continue
-    #             if i in self.__feature_bounds:
-    #                 min_val, max_val = self.__feature_bounds[i]
-    #                 if direction[i] > 0:
-    #                     optimized_instance[i] = max_val  # Increase feature value if positive impact
-    #                 else:
-    #                     optimized_instance[i] = min_val  # Decrease feature value if negative impact
-    #
-    #         return optimized_instance
 
     @overrides
     def optimize_proba(self, target_class: int, feature_masked: List[str]) -> Dict[str, float]:

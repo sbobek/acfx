@@ -10,6 +10,8 @@ from utils.session_state import load_value, store_value
 def show_dane_wejsciowe():
     if 'classifier_instance' in st.session_state:
         del st.session_state['classifier_instance']
+    if 'classifier_name' in st.session_state:
+        del st.session_state['classifier_name']
     load_value('data_loaded')
     if st.session_state.data_loaded:
         st.subheader("📈 Input data")
@@ -57,13 +59,29 @@ def save_input_data(X, y, data_source_name, data):
     st.session_state.data_source_name = data_source_name
     st.session_state.data = data
 
+def is_categorical_like(series, max_unique_ratio=0.1, max_unique_absolute=50):
+    def is_integer_like():
+        return pd.api.types.is_float_dtype(series) and (series.dropna() % 1 == 0).all()
+
+    if pd.api.types.is_categorical_dtype(series):
+        return True
+    if pd.api.types.is_object_dtype(series) or pd.api.types.is_integer_dtype(series) or is_integer_like():
+        unique_count = series.nunique(dropna=True)
+        total_count = len(series)
+        return (unique_count / total_count <= max_unique_ratio) or (unique_count <= max_unique_absolute)
+    return False
+
 def set_feature_types(data_instances, feature_names):
     feature_types = []
     for col in feature_names:
         if is_numeric_dtype(data_instances[col]):
-            feature_types.append({'Column Name': col, 'Type': 'continuous', "is_on": True})
+            if is_categorical_like(data_instances[col]):
+                feature_types.append({'Column Name': col, 'Type': 'nominal', "is_on": False})
+            else:
+                feature_types.append({'Column Name': col, 'Type': 'continuous', "is_on": True})
         else:
-            feature_types.append({'Column Name': col, 'Type': 'nominal', "is_on": True})
+            raise ValueError(f"non-numerical feature found: {col}. For any kind of categorical feature, you need to preprocess first")
+
     st.session_state.feature_types = pd.DataFrame(feature_types)
 
 def init_session_state():
@@ -97,6 +115,8 @@ def clear_features_session_state():
 def delete_future_session_state():
     if 'selected_X' in st.session_state:
         del st.session_state['selected_X']
+    if 'selected_feature_types' in st.session_state:
+        del st.session_state['selected_feature_types']
     if 'classifier_instance' in st.session_state:
         del st.session_state['classifier_instance']
     if 'classifier_params' in st.session_state:
@@ -106,17 +126,23 @@ def delete_future_session_state():
 
     if 'adjacency_matrix' in st.session_state:
         del st.session_state['adjacency_matrix']
-    if 'casual_order' in st.session_state:
-        del st.session_state['casual_order']
+    if 'causal_order' in st.session_state:
+        del st.session_state['causal_order']
     if 'plausibility_loss_on' in st.session_state:
         del st.session_state['plausibility_loss_on']
 
-    if 'casual_order_features' in st.session_state:
-        del st.session_state['casual_order_features']
+    if 'causal_order_features' in st.session_state:
+        del st.session_state['causal_order_features']
     if 'pbounds' in st.session_state:
         del st.session_state['pbounds']
     if 'classifier_instance' in st.session_state:
         del st.session_state["classifier_instance"]
+    if 'desired_class' in st.session_state:
+        del st.session_state['desired_class']
+    if 'num_bins' in st.session_state:
+        del st.session_state['num_bins']
+    if 'bayesian_model' in st.session_state:
+        del st.session_state['bayesian_model']
 
     pbounds_is_masked_to_delete = [key for key in st.session_state.keys() if key.endswith('_pbounds') or key.endswith('_is_masked')]
     for key in pbounds_is_masked_to_delete:
@@ -153,10 +179,13 @@ if st.session_state.source == "Builtin":
     if st.session_state.data_source_name is not None:
         X = data.data
         y = data.target
-        save_input_data(X, y, st.session_state.data_source_name, data)
-        st.session_state.data_loaded = True
 
-        set_feature_types(data_instances=data.data, feature_names=data.feature_names)
+        try:
+            set_feature_types(data_instances=data.data, feature_names=data.feature_names)
+            save_input_data(X, y, st.session_state.data_source_name, data)
+            st.session_state.data_loaded = True
+        except ValueError as e:
+            st.error(e)
 
 
 elif st.session_state.source == "CSV file":
@@ -185,10 +214,14 @@ elif st.session_state.source == "CSV file":
             load_value('drop_na', False)
             if st.checkbox("Drop NaN", key="_drop_na", on_change=store_value, args=['drop_na']):
                 data.dropna(inplace=True)
-            X = data.drop(columns=[st.session_state.label_column])
-            y = data[st.session_state.label_column]
-            set_feature_types(data_instances=data, feature_names=data.columns)
-            st.session_state.data_loaded = True
+            try:
+                X = data.drop(columns=[st.session_state.label_column])
+                y = data[st.session_state.label_column]
+                set_feature_types(data_instances=data, feature_names=data.columns)
+                st.session_state.data_loaded = True
+            except ValueError as e:
+                st.error(e)
+
 
     save_input_data(X, y, None, data)
 
