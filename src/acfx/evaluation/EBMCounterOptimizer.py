@@ -117,6 +117,7 @@ class EBMCounterOptimizer(ModelBasedCounterOptimizer):
 
             # we have 2 terms, so add their score contributions
             for term_idx, features in enumerate(self.model.term_features_):
+                term_scores = self.model.term_scores_[term_idx]
                 # indexing into a tensor requires a multi-dimensional index
                 tensor_index = []
                 # main effects will have 1 feature, and pairs will have 2 features
@@ -156,16 +157,20 @@ class EBMCounterOptimizer(ModelBasedCounterOptimizer):
                                 # non-floats are 'unknown', which is in the last bin (-1)
                                 bin_idx = -1
 
-                        if len(self.model.term_scores_[term_idx].shape) > 1:
-                            sc = self.model.term_scores_[term_idx].T[class_idx][bin_idx]
+                        if len(term_scores.shape) > 1:
+                            if bin_idx >= term_scores.T.shape[1]:
+                                bin_idx = -1
+                            sc = term_scores.T[class_idx][bin_idx]
                         else:
-                            sc = self.model.term_scores_[term_idx][bin_idx]
+                            if bin_idx >= term_scores.shape[0]:
+                                bin_idx = -1
+                            sc = term_scores[bin_idx]
                         # print(f'And feature value {feature_val} translates back to bin index: {bin_idx} which represents score: {sc}')
 
                         tensor_index.append(bin_idx)
 
                 # local_score is also the local feature importance
-                local_score = self.model.term_scores_[term_idx][tuple(tensor_index)]
+                local_score = term_scores[tuple(tensor_index)]
 
                 score += local_score
             sample_scores.append(score)

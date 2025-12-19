@@ -59,12 +59,12 @@ class ExplainersRegistry:
         return pd.DataFrame(cfs).values
 
     def _method_ccf(self):
-        return run_ccf_casual(self.explain_instance, self.model_clf, self.ds,
+        return run_ccf_causal(self.explain_instance, self.model_clf, self.ds,
                               self.desired_class, self.num_cfs, self.causal_model.adjacency_matrix_,
                               self.causal_model.causal_order_,self.pbounds, init_points=self.init_points, n_iter=self.n_iter)
 
     def _method_ccf_no_causal(self):
-        return run_ccf_nocasual(self.explain_instance, self.model_clf, self.ds,
+        return run_ccf_nocausal(self.explain_instance, self.model_clf, self.ds,
                               self.desired_class, self.num_cfs, self.causal_model.adjacency_matrix_,
                             self.causal_model.causal_order_, self.pbounds,
                               init_points=self.init_points, n_iter=self.n_iter)
@@ -312,10 +312,10 @@ class ExplainersRegistry:
             signal.alarm(0)
 
 
-def run_ccf_casual(explain_instance, model_clf, dataset, desired_class, num_cfs, adjacency_matrix, causal_order,
+def run_ccf_causal(explain_instance, model_clf, dataset, desired_class, num_cfs, adjacency_matrix, causal_order,
                    pbounds, as_causal=True, masked_features=None, init_points=500, n_iter=100):
     return generate_cfs(explain_instance, desired_class=desired_class, adjacency_matrix=adjacency_matrix,
-                        casual_order=causal_order,
+                        causal_order=causal_order,
                         proximity_weight=1,
                         sparsity_weight=1,
                         categorical_indicator = dataset._categorical_indicator,
@@ -330,10 +330,10 @@ def run_ccf_casual(explain_instance, model_clf, dataset, desired_class, num_cfs,
                         init_points=init_points,
                         n_iter=n_iter)
 
-def run_ccf_nocasual(explain_instance, model_clf, dataset, desired_class, num_cfs, adjacency_matrix, causal_order,
+def run_ccf_nocausal(explain_instance, model_clf, dataset, desired_class, num_cfs, adjacency_matrix, causal_order,
             pbounds, masked_features=None, init_points=500, n_iter=100):
     return generate_cfs(explain_instance, desired_class=desired_class, adjacency_matrix=adjacency_matrix,
-                        casual_order=causal_order,
+                        causal_order=causal_order,
                         proximity_weight=1,
                         sparsity_weight=1,
                         categorical_indicator = dataset._categorical_indicator,

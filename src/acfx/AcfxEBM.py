@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from interpret.glassbox import ExplainableBoostingClassifier
 from overrides import overrides
+from pgmpy.models import DiscreteBayesianNetwork
 
 from .ACFX import ACFX
 from .abstract import OptimizerType
@@ -23,10 +24,13 @@ class AcfxEBM(ACFX):
         super().__init__(blackbox)
 
     @overrides
-    def fit(self, X:pd.DataFrame, adjacency_matrix:Optional[np.ndarray], casual_order:Optional[Sequence[int]],
-            pbounds:Dict[str, Tuple[float, float]],y=None, masked_features:Optional[List[str]] = None,
-            categorical_indicator:Optional[List[bool]] =None, features_order:Optional[List[str]] =None) -> Self:
+    def fit(self, X:pd.DataFrame, pbounds:Dict[str, Tuple[float, float]], causal_order:Optional[Sequence[int]]=None,
+            adjacency_matrix:Optional[np.ndarray]=None
+            ,y=None, masked_features:Optional[List[str]] = None,
+            categorical_indicator:Optional[List[bool]] =None, features_order:Optional[List[str]] =None,
+            bayesian_causality:bool = False,  bayesian_model : Optional[DiscreteBayesianNetwork]=None,
+            num_bins:Optional[int] = None) -> Self:
         self.optimizer_type = OptimizerType.EBM
-        return super().fit(X, adjacency_matrix, casual_order, pbounds,
-                    y, masked_features,categorical_indicator, features_order)
+        return super().fit(X, pbounds, causal_order,adjacency_matrix,
+                    y, masked_features,categorical_indicator, features_order, bayesian_causality, bayesian_model, num_bins)
 

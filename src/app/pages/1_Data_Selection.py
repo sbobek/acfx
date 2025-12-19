@@ -10,6 +10,8 @@ from utils.session_state import load_value, store_value
 def show_dane_wejsciowe():
     if 'classifier_instance' in st.session_state:
         del st.session_state['classifier_instance']
+    if 'classifier_name' in st.session_state:
+        del st.session_state['classifier_name']
     load_value('data_loaded')
     if st.session_state.data_loaded:
         st.subheader("📈 Input data")
@@ -124,19 +126,23 @@ def delete_future_session_state():
 
     if 'adjacency_matrix' in st.session_state:
         del st.session_state['adjacency_matrix']
-    if 'casual_order' in st.session_state:
-        del st.session_state['casual_order']
+    if 'causal_order' in st.session_state:
+        del st.session_state['causal_order']
     if 'plausibility_loss_on' in st.session_state:
         del st.session_state['plausibility_loss_on']
 
-    if 'casual_order_features' in st.session_state:
-        del st.session_state['casual_order_features']
+    if 'causal_order_features' in st.session_state:
+        del st.session_state['causal_order_features']
     if 'pbounds' in st.session_state:
         del st.session_state['pbounds']
     if 'classifier_instance' in st.session_state:
         del st.session_state["classifier_instance"]
     if 'desired_class' in st.session_state:
         del st.session_state['desired_class']
+    if 'num_bins' in st.session_state:
+        del st.session_state['num_bins']
+    if 'bayesian_model' in st.session_state:
+        del st.session_state['bayesian_model']
 
     pbounds_is_masked_to_delete = [key for key in st.session_state.keys() if key.endswith('_pbounds') or key.endswith('_is_masked')]
     for key in pbounds_is_masked_to_delete:

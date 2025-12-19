@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "acfx"
-version = "0.3.0"
+version = "0.3.2"
 description = "Actionable Counterfactual eXplanations"
 readme = "README.md"
 authors = [
@@ -20,12 +20,13 @@ dependencies = [
     "scipy==1.11.4",
     "scikit-learn==1.6.1",
     "optuna==4.2.0",
+    "pgmpy==1.0.0",
     "interpret==0.7.3",
     "interpret-core==0.7.3",
     "overrides==7.4.0"
 ]
 
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 
 
 [project.optional-dependencies]
