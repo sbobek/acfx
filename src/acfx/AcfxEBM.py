@@ -11,7 +11,7 @@ from .abstract import OptimizerType
 
 class AcfxEBM(ACFX):
     """
-        AcfxCustom: A Counterfactual Explanation Model (using EBM as blackbox)
+        AcfxEBM: A Counterfactual Explanation Model (using EBM as blackbox)
     """
     def __init__(self, blackbox: ExplainableBoostingClassifier):
         """

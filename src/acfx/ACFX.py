@@ -47,14 +47,15 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
         """
         Fits explainer to the sampled data and blackbox model provided in the constructor
 
-        :return:
+        Returns
+        -------
         self
             Fitted estimator.
 
         Parameters
         ----------
         X : {sparse matrix} of shape (n_samples, n_features)
-            Used for counterfactuals generation
+            Dataset used for counterfactuals generation
 
         pbounds:
             The bounds for each feature to search over (dict with feature names as keys and tuple (min, max) as values).
@@ -66,7 +67,7 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
             The adjacency matrix representing the causal structure.
 
         y : array-like of shape (n_samples,).
-            Target values used for blackbox model fitting only. You can provide fitted blackbox to constructor or fit it in this method by providing this parameter
+            Dataset target values used for blackbox model fitting only. You can provide fitted blackbox to constructor or fit it in this method by providing this parameter
 
         masked_features:
             List of interchangeable features
@@ -78,12 +79,13 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
             order of features in query instance
 
         bayesian_causality:
-            skip adjacency and calculate discrete bayesian network for causal loss.
-            A discrete bayesian network will be fitted to calculate causal loss component.
+            calculate discrete bayesian network for causal loss. If bayesian_causality is True,
+            then adjacency_matrix and causal_order are not used. Instead, a discrete bayesian network will be used to calculate causal loss component
 
         bayesian_model:
             optionally, provide pre-fitted discrete bayesian model, if bayesian_causality is True.
-            If it is not provided and=bayesian_causality, it will be fitted with the num_bins param
+            If it is not provided and bayesian_causality is True, then it will be initialized internally and
+            fitted with the num_bins param
 
         num_bins:
             Number of bins to use for discretizing continuous features (bayesian causality only)
@@ -116,7 +118,7 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
         Parameters
         ----------
         X : {array-like, sparse matrix} of shape (n_samples, n_features)
-            Used for counterfactuals generation
+            Dataset to predict
 
         Returns
         -------
@@ -160,7 +162,7 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
             Number of iterations for Bayesian Optimization.
 
         sampling_from_model:
-            true if you want to generate samples from model after sampling from data and generating with relationship graph
+            true if you want to generate samples from model after sampling from data
 
         Returns
         -------

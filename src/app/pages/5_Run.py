@@ -265,6 +265,7 @@ else:
                                          proximity_weight=st.session_state.proximity_weight,
                                          plausibility_weight=st.session_state.plausibility_loss,
                                          diversity_weight=st.session_state.diversity_weight,
+                                         sparsity_weight=st.session_state.sparsity_weight,
                                          init_points=st.session_state.init_points,
                                          n_iter=st.session_state.n_iter,
                                          sampling_from_model=st.session_state.sampling_from_model)
