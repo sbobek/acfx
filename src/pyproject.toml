@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "acfx"
-version = "0.3.4"
+version = "0.3.5"
 description = "Actionable Counterfactual eXplanations"
 readme = "README.md"
 authors = [
     { name = "Szymon Bobek", email = "szymon.bobek@gmail.com" },
     { name = "Piotr Kubacki", email = "piotr.kubacki00@gmail.com"}
 ]
-license = { expression = "MIT" }
+license = { text = "MIT" }
 keywords = ["xai", "tabular data","explainability", "model-agnostic", "counterfactual", "causal"]
 
 dependencies = [
