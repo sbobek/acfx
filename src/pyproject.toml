@@ -11,7 +11,7 @@ authors = [
     { name = "Szymon Bobek", email = "szymon.bobek@gmail.com" },
     { name = "Piotr Kubacki", email = "piotr.kubacki00@gmail.com"}
 ]
-license = { expression = "MIT" 
+license = { expression = "MIT" }
 keywords = ["xai", "tabular data","explainability", "model-agnostic", "counterfactual", "causal"]
 
 dependencies = [
