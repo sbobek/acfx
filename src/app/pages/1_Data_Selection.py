@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from pandas.core.dtypes.common import is_numeric_dtype, is_categorical_dtype
 from sklearn.datasets import (load_iris, load_wine,
@@ -6,6 +7,14 @@ from sklearn.datasets import (load_iris, load_wine,
 # from sklearn.datasets import load_diabetes
 import streamlit as st
 from utils.session_state import load_value, store_value
+from sklearn.utils import Bunch
+from pathlib import Path
+
+def mark_all_on():
+    for key in st.session_state.keys():
+        if key.startswith("is_on_"):
+            st.session_state[key] = True
+
 
 def show_dane_wejsciowe():
     if 'classifier_instance' in st.session_state:
@@ -22,6 +31,8 @@ def show_dane_wejsciowe():
         else:
             st.dataframe(st.session_state.y)
     if st.session_state.feature_types is not None:
+        if st.button('Mark all as available for evaluation'):
+            mark_all_on()
         st.subheader("Column types")
         updated_types = []
         for i, row in st.session_state.feature_types.iterrows():
@@ -152,6 +163,30 @@ def data_source_changed(data_source_name):
     clear_features_session_state()
     store_value(data_source_name)
 
+def load_german_credit_data() -> Bunch:
+    current_dir = Path(__file__).parent
+    file_path = current_dir.parent / 'german_credit_numeric.csv'
+
+    if not file_path.exists():
+        raise FileNotFoundError(f"german credit dataset not found: {file_path}")
+
+    bunch_df = pd.read_csv(file_path)
+    target_column = 'Credit granted'
+    if target_column not in bunch_df.columns:
+        raise ValueError(f"german credit csv dataset is invalid: '{target_column}' column missing. Columns available: {list(bunch_df.columns)}")
+
+    bunch_X = bunch_df.drop(columns=[target_column])
+    bunch_y = bunch_df[target_column]
+
+    data = Bunch(
+        data=bunch_X,
+        target=bunch_y,
+        frame=bunch_df,
+        feature_names=list(bunch_X.columns),
+        target_names=np.array(['Not Granted', 'Granted'])
+    )
+    return data
+
 init_session_state()
 st.title("🔍 Select data")
 
@@ -160,21 +195,20 @@ if st.session_state.source == "Builtin":
     st.session_state.label_column = None
     st.session_state.drop_na = False
     st.session_state.data_loaded = False
-    load_value('data_source_name'); st.radio("Dataset:", ['iris', 'wine',  'breast cancer',
-                                                          # ,'diabetes', 'digits'
-                                                          ],
+    load_value('data_source_name')
+    st.radio("Dataset:", ['iris', 'wine',  'breast cancer', 'german credit'],
                                              key='_data_source_name', on_change=data_source_changed, args=['data_source_name'])
     data = None
     if st.session_state.data_source_name == 'iris':
         data = load_iris(as_frame=True)
     elif st.session_state.data_source_name == 'wine':
         data = load_wine(as_frame=True)
-    # elif st.session_state.data_source_name == 'digits':
-    #     data = load_digits(as_frame=True)
     elif st.session_state.data_source_name == 'breast cancer':
         data = load_breast_cancer(as_frame=True)
-    # elif st.session_state.data_source_name == 'diabetes':
-    #     data = load_diabetes(as_frame=True)
+    elif st.session_state.data_source_name == 'german credit':
+        data = load_german_credit_data()
+    elif st.session_state.data_source_name is not None:
+        raise ValueError(f"data_source_name: {st.session_state.data_source_name} is out of range")
 
     if st.session_state.data_source_name is not None:
         X = data.data
