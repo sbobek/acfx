@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "acfx"
-version = "0.3.5"
+version = "0.3.6"
 description = "Actionable Counterfactual eXplanations"
 readme = "README.md"
 authors = [
@@ -15,15 +15,24 @@ license = { text = "MIT" }
 keywords = ["xai", "tabular data","explainability", "model-agnostic", "counterfactual", "causal"]
 
 dependencies = [
-    "numpy==1.26.0",
-    "pandas==1.5.3",
-    "scipy==1.11.4",
-    "scikit-learn==1.6.1",
+    "numpy==1.26.0; python_version < \"3.12\"",
+    "numpy>=1.26.0,<=2.4.3; python_version >= \"3.12\"",
+
+    "pandas==1.5.3; python_version < \"3.12\"",
+    "pandas>=1.5.3,<=2.3.4; python_version >= \"3.12\"",
+
+    "scipy==1.11.4; python_version < \"3.12\"",
+    "scipy>=1.11.1,<1.17; python_version >= \"3.12\"",
+
+    "scikit-learn==1.6.1; python_version < \"3.12\"",
+    "scikit-learn>=1.6.1,<=1.8.0; python_version >= \"3.12\"",
+
     "optuna==4.2.0",
     "pgmpy==1.0.0",
     "interpret==0.7.3",
     "interpret-core==0.7.3",
     "overrides==7.4.0"
+
 ]
 
 requires-python = ">=3.10"
