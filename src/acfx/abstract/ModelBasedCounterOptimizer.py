@@ -8,14 +8,14 @@ class ModelBasedCounterOptimizer(ABC):
         """
         Modifies the instance to increase the probability of the target class by adjusting feature values.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         target_class:
             The desired class to optimize towards.
         feature_masked:
             List of interchangeable features
 
-        Returns:
+        Returns
         -------
         Dictionary of feature names and their optimized values
         """

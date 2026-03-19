@@ -12,7 +12,7 @@ from .abstract import OptimizerType
 
 class AcfxLinear(ACFX):
     """
-        AcfxCustom: A Counterfactual Explanation Model (using linear additive model as blackbox)
+        AcfxLinear: A Counterfactual Explanation Model (using linear additive model as blackbox)
     """
     def __init__(self, blackbox: LinearClassifierMixin):
         """

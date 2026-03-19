@@ -19,7 +19,7 @@ else:
     categorical_indicator = categorical_columns = st.session_state.feature_types[
         st.session_state.feature_types["Type"] == "nominal"]["Column Name"].tolist()
     initial_pbounds = calc_pbounds(st.session_state.selected_X, categorical_indicator)
-    load_value('pbounds', initial_pbounds)
+    st.session_state['pbounds'] = initial_pbounds
     st.subheader("The bounds for each feature to search over")
     for feature_name, interval in st.session_state.pbounds.items():
         min, max = interval[0], interval[1]

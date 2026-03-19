@@ -6,7 +6,7 @@ This page contains the API reference for public objects and functions in ACFX.
 .. _explanation_api:
 
 Explanation interface
--------------
+---------------------
 .. autosummary::
     :toctree: explanation_api/
 
@@ -19,7 +19,7 @@ Explanation interface
 .. _counterfactual_generation:
 
 Counterfactual generation
--------------
+-------------------------
 .. autosummary::
     :toctree: counterfactual_generation/
 
@@ -28,7 +28,7 @@ Counterfactual generation
 .. _abstract:
 
 Abstract
--------------
+--------
 .. autosummary::
     :toctree: abstract/
 

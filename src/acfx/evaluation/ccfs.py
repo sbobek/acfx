@@ -263,7 +263,7 @@ def generate_cfs_bayesian(query_instance:np.ndarray, desired_class:int, bayesian
         features_order:
             order of features in query instance
         masked_features:
-            masked features vector (features to skip)
+            List of interchangeable features
         categorical_indicator:
             True at the index where the variable should be treated as categorical
         num_cfs:
@@ -275,7 +275,7 @@ def generate_cfs_bayesian(query_instance:np.ndarray, desired_class:int, bayesian
         X:
             training dataset to sample from.
         sampling_from_model:
-            true if you want to generate samples from model after sampling from data and generating with relationship graph
+            true if you want to generate samples from model after sampling from data
         optimizer_type:
             type of optimizer used on model to generate counterfactuals. If you use OptimizerType.Custom, you need to provide optimizer instance
         optimizer:
@@ -332,7 +332,7 @@ def generate_cfs(query_instance:np.ndarray, desired_class:int, adjacency_matrix:
         features_order:
             order of features in query instance
         masked_features:
-            masked features vector (features to skip)
+            List of interchangeable features
         categorical_indicator:
             True at the index where the variable should be treated as categorical
         num_cfs:
@@ -344,7 +344,7 @@ def generate_cfs(query_instance:np.ndarray, desired_class:int, adjacency_matrix:
         X:
             training dataset to sample from.
         sampling_from_model:
-            true if you want to generate samples from model after sampling from data and generating with relationship graph
+            true if you want to generate samples from model after sampling from data
         optimizer_type:
             type of optimizer used on model to generate counterfactuals. If you use OptimizerType.Custom, you need to provide optimizer instance
         optimizer:

@@ -6,7 +6,7 @@ This project is a Streamlit-based web application for interactive counterfactual
 
 1. Clone the repository:
 ```bash
-git clone git clone https://github.com/sbobek/acfx
+git clone https://github.com/sbobek/acfx
 cd acfx
 ```
 2. Build environment
