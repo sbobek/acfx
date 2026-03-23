@@ -17,6 +17,12 @@ from .ExplainersRegistry import ExplainersRegistry
 from .tools.CCStats import CCStats
 from tensorflow.python.keras import backend as keras_backend
 
+def check_version():
+    if sys.version_info >= (3, 12):
+        raise RuntimeError(
+            "Benchmark require Python < 3.12 because of dependency constraints "
+        )
+
 def set_session():
     tf.compat.v1.disable_eager_execution()
     sess = tf.compat.v1.Session()
@@ -107,6 +113,7 @@ def init_logger():
     logging.getLogger('openml').setLevel(logging.ERROR)
 
 if __name__ == '__main__':
+    check_version()
     set_model_path()
     set_session()
 
