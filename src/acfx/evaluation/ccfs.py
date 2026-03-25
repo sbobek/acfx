@@ -28,7 +28,10 @@ def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal
     optuna.logging.set_verbosity(optuna.logging.WARNING)
 
     def update_masked_features_dict(features_order, masked_features, **params):
-        for feature, value in zip(features_order, query_instance):
+        qi = query_instance
+        if (1,features_order) == query_instance.shape:
+            qi = query_instance.reshape(-1,1)
+        for feature, value in zip(features_order, qi):
             if feature not in masked_features:
                 params[feature] = value
         return params

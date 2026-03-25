@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "acfx"
-version = "0.3.6"
+version = "0.3.6dev1"
 description = "Actionable Counterfactual eXplanations"
 readme = "README.md"
 authors = [
