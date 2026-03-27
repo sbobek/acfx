@@ -29,7 +29,7 @@ def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal
 
     def update_masked_features_dict(features_order, masked_features, **params):
         qi = query_instance
-        if (1,features_order) == query_instance.shape:
+        if (1,len(features_order)) == query_instance.shape:
             qi = query_instance.flatten()
         for feature, value in zip(features_order, qi):
             if feature not in masked_features:
