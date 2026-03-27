@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "acfx"
-version = "0.3.6dev3"
+version = "0.3.6dev4"
 description = "Actionable Counterfactual eXplanations"
 readme = "README.md"
 authors = [
@@ -15,48 +15,46 @@ license = { text = "MIT" }
 keywords = ["xai", "tabular data","explainability", "model-agnostic", "counterfactual", "causal"]
 
 dependencies = [
-    "numpy==1.26.0; python_version < \"3.12\"",
-    "numpy>=1.26.0,<=2.4.3; python_version >= \"3.12\"",
-
-    "pandas==1.5.3; python_version < \"3.12\"",
-    "pandas>=1.5.3,<=2.3.4; python_version >= \"3.12\"",
-
-    "scipy==1.11.4; python_version < \"3.12\"",
-    "scipy>=1.11.1,<1.17; python_version >= \"3.12\"",
-
-    "scikit-learn==1.6.1; python_version < \"3.12\"",
-    "scikit-learn>=1.6.1,<=1.8.0; python_version >= \"3.12\"",
+    "numpy==1.26.0; python_version < '3.12'",
+    "numpy>=1.26.0,<=2.4.3; python_version >= '3.12'",
+    "pandas==1.5.3; python_version < '3.12'",
+    "pandas>=1.5.3,<=2.4.3; python_version >= '3.12'",
+    "scipy==1.11.4; python_version < '3.12'",
+    "scipy>=1.11.4,<1.17; python_version >= '3.12'",
+    "scikit-learn==1.6.1; python_version < '3.12'",
+    "scikit-learn>=1.6.1,<=1.8.0; python_version >= '3.12'",
 
     "optuna==4.2.0",
     "pgmpy==1.0.0",
     "interpret==0.7.3",
     "interpret-core==0.7.3",
     "overrides==7.4.0"
-
 ]
 
 requires-python = ">=3.10"
 
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Operating System :: OS Independent"
 ]
 
 
 [project.optional-dependencies]
 benchmark = [
-    "tensorflow==2.14.0; python_version < \"3.12\"",
-    "lingam==1.9.1; python_version < \"3.12\"",
-    "openml==0.15.1; python_version < \"3.12\"",
-    "alibi==0.9.6; python_version < \"3.12\"",
-    "lux-explainer==1.3.2; python_version < \"3.12\"",
-    "networkx==3.4.2; python_version < \"3.12\"",
-    "cfnow==0.0.6; python_version < \"3.12\"",
-    "dice-ml==0.11; python_version < \"3.12\"",
-    "pydotplus==2.0.2; python_version < \"3.12\"",
-    "deap==1.4.2; python_version < \"3.12\"",
-    "pydot==3.0.4; python_version < \"3.12\""
-    ]
+    "tensorflow==2.14.0; python_version <= '3.11'",
+    "lingam==1.9.1; python_version <= '3.11'",
+    "openml==0.15.1; python_version <= '3.11'",
+    "alibi==0.9.6; python_version <= '3.11'",
+    "lux-explainer==1.3.2; python_version <= '3.11'",
+    "networkx==3.4.2; python_version <= '3.11'",
+    "cfnow==0.0.6; python_version <= '3.11'",
+    "dice-ml==0.11; python_version <= '3.11'",
+    "pydotplus==2.0.2; python_version <= '3.11'",
+    "deap==1.4.2; python_version <= '3.11'",
+    "pydot==3.0.4; python_version <= '3.11'"
+]
 streamlit-app = ["streamlit==1.48.0", "streamlit-sortables==0.3.1", "networkx==3.4.2", "lingam==1.9.1"]
 
 [tool.setuptools.packages.find]
