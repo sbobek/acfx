@@ -37,10 +37,11 @@ def show_dane_wejsciowe():
         updated_types = []
         for i, row in st.session_state.feature_types.iterrows():
             key_type_select = f"type_select_{i}"
+            type_options = ["continuous", "nominal", "ordinal"]
             selected_type = st.selectbox(
                 row['Column Name'],
-                options=["continuous", "nominal", "ordinal"],
-                index=0 if row['Type'] == "continuous" else 1,
+                options= type_options,
+                index=type_options.index(row['Type']),
                 key=key_type_select
             )
             key_is_on_select = f"is_on_{i}"
