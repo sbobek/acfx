@@ -95,6 +95,45 @@ def set_feature_types(data_instances, feature_names):
 
     st.session_state.feature_types = pd.DataFrame(feature_types)
 
+def set_feature_types_german_credit(data_instances, feature_names):
+    german_features = {
+        "Status of existing checking account": "ordinal",
+        "Duration": "continuous",
+        "Credit history": "ordinal",
+        "Purpose": "nominal",
+        "Credit amount": "continuous",
+        "Savings account/bonds": "ordinal",
+        "Present employment since": "ordinal",
+        "Installment rate in percentage of disposable income": "continuous",
+        "Personal status and sex": "nominal",
+        "Other debtors / guarantors": "nominal",
+        "Present residence since": "continuous",
+        "Property": "nominal",
+        "Age": "continuous",
+        "Other installment plans": "nominal",
+        "Housing": "nominal",
+        "Number of existing credits at this bank": "ordinal",
+        "Job": "ordinal",
+        "Number of people being liable to provide maintenance for": "ordinal",  # there are only two options: 1 and 2
+        "Telephone": "nominal",
+        "foreign worker": "nominal",
+        "Credit granted": "nominal",
+    }
+    ft = []
+    for col in feature_names:
+        if col not in german_features.keys():
+            if is_numeric_dtype(data_instances[col]):
+                if is_categorical_like(data_instances[col]):
+                    ft.append({'Column Name': col, 'Type': 'nominal', "is_on": False})
+                else:
+                    ft.append({'Column Name': col, 'Type': 'continuous', "is_on": True})
+            else:
+                raise ValueError(f"non-numerical feature found: {col}. For any kind of categorical feature, you need to preprocess first")
+        else:
+            ft.append({'Column Name': col, 'Type': german_features[col], "is_on": bool(german_features[col] == 'continuous')})
+
+    st.session_state.feature_types = pd.DataFrame(ft)
+
 def init_session_state():
     if "feature_types" not in st.session_state:
         st.session_state.feature_types = None
@@ -215,7 +254,10 @@ if st.session_state.source == "Builtin":
         y = data.target
 
         try:
-            set_feature_types(data_instances=data.data, feature_names=data.feature_names)
+            if st.session_state.data_source_name == 'german credit':
+                set_feature_types_german_credit(data_instances=data.data, feature_names=data.feature_names)
+            else:
+                set_feature_types(data_instances=data.data, feature_names=data.feature_names)
             save_input_data(X, y, st.session_state.data_source_name, data)
             st.session_state.data_loaded = True
         except ValueError as e:
