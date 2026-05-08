@@ -89,7 +89,12 @@ def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal
     # Define seen_points set to track uniqueness of points
     seen_points = set()
 
-    def is_unique_point(point_dict):
+    def is_unique_point(point_dict, pbounds):
+        for key, (min_val, max_val) in pbounds.items():
+            val = point_dict.get(key)
+            if val is None or not (min_val <= val <= max_val):
+                return False
+
         point_tuple = tuple(point_dict[key] for key in features_order)
         if point_tuple in seen_points:
             return False
@@ -107,7 +112,7 @@ def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal
         Xsample = Xdesired.sample(sample_size)
         for i, r in Xsample.iterrows():
             candidate_point = dict(r[features_order])
-            if is_unique_point(candidate_point):
+            if is_unique_point(candidate_point, bounds):
                 trial_params = {key: candidate_point[key] for key in features_order}
                 study.enqueue_trial(trial_params)
                 sampled_trials += 1
@@ -152,7 +157,7 @@ def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal
             else:
                 raise ValueError("Unexpected format for cf")
 
-            if is_unique_point(cf_dict):
+            if is_unique_point(cf_dict, bounds):
                 sampled_trials += 1
                 study.enqueue_trial(cf_dict)
         return sampled_trials
