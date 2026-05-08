@@ -1,4 +1,5 @@
 import random
+import uuid
 from typing import Sequence, Dict, Tuple, Optional, List
 import traceback
 import numpy as np
@@ -82,7 +83,8 @@ def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal
         return -loss[0, 1]
 
     # Initialize Optuna study
-    study = optuna.create_study(direction='maximize')
+    study_name = f"study_{uuid.uuid4().hex}"
+    study = optuna.create_study(direction='maximize', storage=None, study_name=study_name)
 
     # Define seen_points set to track uniqueness of points
     seen_points = set()
