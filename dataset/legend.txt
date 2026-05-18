@@ -1,0 +1,121 @@
+Attribute 1:  (qualitative)
+ Status of existing checking account
+             0 :      ... <    0 DM
+	       1 : 0 <= ... <  200 DM
+	       2 :      ... >= 200 DM / salary assignments for at least 1 year
+               3 : no checking account
+
+Attribute 2:  (numerical)
+	      Duration in month
+
+Attribute 3:  (qualitative)
+	      Credit history
+	      0 : no credits taken/ all credits paid back duly
+          1 : all credits at this bank paid back duly
+	      2 : existing credits paid back duly till now
+          3 : delay in paying off in the past
+	      4 : critical account/  other credits existing (not at this bank)
+
+Attribute 4:  (qualitative)
+	      Purpose
+	      0 : car (new)
+	      1 : car (used)
+	      2 : furniture/equipment
+	      3 : radio/television
+	      4 : domestic appliances
+	      5 : repairs
+	      6 : education
+	      7 : (vacation - does not exist?)
+	      8 : retraining
+	      9 : business
+	      10 : others
+
+Attribute 5:  (numerical)
+	      Credit amount
+
+Attibute 6:  (qualitative)
+	      Savings account/bonds
+	      0 :          ... <  100 DM
+	      1 :   100 <= ... <  500 DM
+	      2 :   500 <= ... < 1000 DM
+	      3 :          .. >= 1000 DM
+          4 :   unknown/ no savings account
+
+Attribute 7:  (qualitative)
+	      Present employment since
+	      0 : unemployed
+	      1 :       ... < 1 year
+	      2 : 1  <= ... < 4 years
+	      3 : 4  <= ... < 7 years
+	      4 :       .. >= 7 years
+
+Attribute 8:  (numerical)
+	      Installment rate in percentage of disposable income
+
+Attribute 9:  (qualitative)
+	      Personal status and sex
+	      0 : male   : divorced/separated
+	      1 : female : divorced/separated/married
+          2 : male   : single
+	      3 : male   : married/widowed
+	      4 : female : single
+
+Attribute 10: (qualitative)
+	      Other debtors / guarantors
+	      0 : none
+	      1 : co-applicant
+	      2 : guarantor
+
+Attribute 11: (numerical)
+	      Present residence since
+
+Attribute 12: (qualitative)
+	      Property
+	      0 : real estate
+	      1 : if not 0 : building society savings agreement/ life insurance
+          2 : if not 0/1 : car or other, not in attribute 6
+	      3 : unknown / no property
+
+Attribute 13: (numerical)
+	      Age in years
+
+Attribute 14: (qualitative)
+	      Other installment plans
+	      0 : bank
+	      1 : stores
+	      2 : none
+
+Attribute 15: (qualitative)
+	      Housing
+	      0 : rent
+	      1 : own
+	      2 : for free
+
+Attribute 16: (numerical)
+              Number of existing credits at this bank
+
+Attribute 17: (qualitative)
+	      Job
+	      0 : unemployed/ unskilled  - non-resident
+	      1 : unskilled - resident
+	      2 : skilled employee / official
+	      3 : management/ self-employed/
+		     highly qualified employee/ officer
+
+Attribute 18: (numerical)
+	      Number of people being liable to provide maintenance for
+
+Attribute 19: (qualitative)
+	      Telephone
+	      0 : none
+	      1 : yes, registered under the customers name
+
+Attribute 20: (qualitative)
+	      foreign worker
+	      0 : yes
+	      1 : no
+
+Target: (qualitative)
+	      Credit granted
+	      0   : no
+	      1   : yes
