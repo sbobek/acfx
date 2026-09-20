@@ -64,7 +64,7 @@ def lingam_causality_display():
             font_color="white",
             directed=True
         )
-
+        net.repulsion(node_distance=200, central_gravity=0.1, spring_length=200, spring_strength=0.05)
         for node in graph.nodes():
             net.add_node(node, label=node, title=node)  # title to tooltip po najechaniu
 
@@ -194,7 +194,7 @@ def bayesian_causality_display():
             cdn_resources='remote'
         )
         net.from_nx(G)
-
+        net.repulsion(node_distance=200, central_gravity=0.1, spring_length=200, spring_strength=0.05)
         for node in net.nodes:
             node['color'] = '#ADD8E6'
             node['size'] = 25

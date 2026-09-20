@@ -29,25 +29,44 @@ class LogisticRegressionCounterOptimizer(ModelBasedCounterOptimizer):
 
     @overrides
     def optimize_proba(self, target_class: int, feature_masked: List[str]) -> Dict[str, float]:
-        optimized_instances = []
+        # v2 - lepiej bez iterrows
+        df_optimized = self.X.copy()
+        coefficients = self.model.coef_[target_class]
+        direction = np.sign(coefficients)
+        model_features = list(self.X.columns)
 
-        for index, instance in self.X.iterrows():
-            coefficients = self.model.coef_[target_class]  # Extract model coefficients for the target class
-            direction = np.sign(coefficients)
-            optimized_instance = instance.copy()
+        for feature_name in feature_masked:
+            if feature_name in self.__feature_bounds and feature_name in model_features:
+                feature_idx = model_features.index(feature_name)
+                min_val, max_val = self.__feature_bounds[feature_name]
 
-            for i, feature_name in enumerate(self.X.columns):
-                if feature_name not in feature_masked:
-                    continue
-                if feature_name in self.__feature_bounds:
-                    min_val, max_val = self.__feature_bounds[feature_name]
-                    if direction[i] > 0:
-                        optimized_instance[feature_name] = max_val  # Increase feature value if positive impact
-                    else:
-                        optimized_instance[feature_name] = min_val  # Decrease feature value if negative impact
+                if direction[feature_idx] > 0:
+                    df_optimized[feature_name] = max_val
+                else:
+                    df_optimized[feature_name] = min_val
 
-            optimized_instances.append(optimized_instance)
-
-        df_optimized = pd.DataFrame(optimized_instances)
         avg_optimized = df_optimized.mean().to_dict()
         return avg_optimized
+
+        # optimized_instances = []
+        #
+        # for index, instance in self.X.iterrows():
+        #     coefficients = self.model.coef_[target_class]
+        #     direction = np.sign(coefficients)
+        #     optimized_instance = instance.copy()
+        #
+        #     for i, feature_name in enumerate(self.X.columns):
+        #         if feature_name not in feature_masked:
+        #             continue
+        #         if feature_name in self.__feature_bounds:
+        #             min_val, max_val = self.__feature_bounds[feature_name]
+        #             if direction[i] > 0:
+        #                 optimized_instance[feature_name] = max_val
+        #             else:
+        #                 optimized_instance[feature_name] = min_val
+        #
+        #     optimized_instances.append(optimized_instance)
+        #
+        # df_optimized = pd.DataFrame(optimized_instances)
+        # avg_optimized = df_optimized.mean().to_dict()
+        # return avg_optimized
