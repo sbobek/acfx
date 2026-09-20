@@ -61,9 +61,8 @@ def discretize_ndarray(data: np.ndarray, categorical_flags: list[bool], bins: in
     result = data.copy().astype(object)  # Use object type to allow mixed types if needed
 
     for col_idx, is_cat in enumerate(categorical_flags):
-        if not is_cat:  # Continuous feature
+        if not is_cat:
             col = data[:, col_idx]
-            # Compute bin edges and assign bin indices
             bin_edges = np.linspace(np.min(col), np.max(col), bins + 1)
             result[:, col_idx] = np.digitize(col, bin_edges[1:-1], right=True)
 

@@ -167,6 +167,19 @@ def get_target_class_list():
         target_class_list = st.session_state.classifier_instance.classes_
     return target_class_list
 
+def get_prediction_label(pred) -> str:
+    try:
+        classifier_instance = st.session_state.classifier_instance
+        if hasattr(classifier_instance, "classes_") and classifier_instance.classes_ is not None:
+            classes = list(classifier_instance.classes_)
+            if pred in classes:
+                idx = classes.index(pred)
+                target_class_list = get_target_class_list()
+                return str(target_class_list[idx])
+    except Exception:
+        pass
+    return str(pred)
+
 def get_numeric_desired_class():
     if isinstance(st.session_state['desired_class'], str):
         desired_class = np.argwhere(get_target_class_list() == st.session_state['desired_class'])[0][0]
@@ -258,7 +271,14 @@ else:
     )
 
     is_button_disabled = query_instances is None
-    if st.button("EVALUATE", disabled=is_button_disabled):
+
+    col1, col2, _ = st.columns([1, 1, 3])
+    with col2:
+        evaluate_clicked = st.button("COUNTERFACTUAL", disabled=is_button_disabled, use_container_width=True)
+    with col1:
+        check_blackbox_clicked = st.button("PREDICT", disabled=is_button_disabled, use_container_width=True)
+
+    if evaluate_clicked:
         if query_instances is None:
             st.warning("⚠️ Query instance must be provided first")
         elif 'desired_class' not in st.session_state or st.session_state.desired_class is None:
@@ -287,4 +307,41 @@ else:
                         query_instance_with_index.index = ["Query Instance"]
                         st.subheader(f"📊 RESULT {i+1}")
                         st.dataframe(pd.concat([query_instance_with_index,cfs]), use_container_width=True)
+
+    elif check_blackbox_clicked:
+        if query_instances is None:
+            st.warning("⚠️ Query instance must be provided first")
+        else:
+            classifier_instance = st.session_state.classifier_instance
+            with st.spinner("Checking black-box predictions..."):
+                for i, query_instance in query_instances.iterrows():
+                    query_instance_df = pd.DataFrame([query_instance])
+                    query_instance_for_pred = query_instance_df[st.session_state.selected_X.columns]
+                    
+                    pred = classifier_instance.predict(query_instance_for_pred)[0]
+                    pred_label = get_prediction_label(pred)
+                    
+                    if not hasattr(classifier_instance, "predict_proba"):
+                        raise AttributeError(f"The classifier '{type(classifier_instance).__name__}' does not support 'predict_proba'.")
+                    
+                    probs = classifier_instance.predict_proba(query_instance_for_pred)[0]
+                    classes = list(classifier_instance.classes_)
+                    pred_idx = classes.index(pred)
+                    pred_prob = probs[pred_idx]
+                    
+                    target_class_list = get_target_class_list()
+                    prob_strs = []
+                    for cls_val, prob in zip(classes, probs):
+                        idx = classes.index(cls_val)
+                        cls_name = target_class_list[idx]
+                        prob_strs.append(f"**{cls_name}**: {prob:.1%}")
+                    prob_info = " | ".join(prob_strs)
+                        
+                    query_instance_with_index = pd.DataFrame([query_instance])
+                    query_instance_with_index.index = ["Query Instance"]
+                    
+                    st.subheader(f"📊 BLACK-BOX PREDICTION {i+1}")
+                    st.dataframe(query_instance_with_index, use_container_width=True)
+                    
+                    st.info(f"🔮 **Predicted Class:** `{pred_label}` ({pred_prob:.1%})  \n**Class Probabilities:** {prob_info}")
 

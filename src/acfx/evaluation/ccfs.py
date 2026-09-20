@@ -165,7 +165,7 @@ def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal
     sampled_trials = 0
     if X is not None:
         Xdesired = X[model.predict(X) == desired_class].drop_duplicates()
-        init_points, sample_size, sampled_trials = sample_from_data(X, features_order,
+        init_points, sample_size, sampled_trials = sample_from_data(Xdesired, features_order,
                                                                               init_points,
                                                                               sampled_trials, study)
         if init_points > 0 and sampling_from_model:
