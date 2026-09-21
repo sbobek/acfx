@@ -105,7 +105,7 @@ Learn more and explore advanced examples:
 
 * **Documentation**: [ACFX Docs](https://acfx.readthedocs.io/en/latest/)
 * **Python API (Colab Notebooks)**: [Interactive Examples](https://colab.research.google.com/drive/1Hj6yH4UIrAp1Jp6B1U542vcdSkXuZHUd?usp=sharing)
-* **Graphical User Interface (GUI)**: [ACFX GUI](https://acfx.readthedocs.io/en/latest/)
+* **Graphical User Interface (GUI)**: [ACFX GUI](https://acfx-dashboard.streamlit.app/)
 
 
 
