@@ -8,7 +8,7 @@ from sklearn.datasets import load_iris
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 
-from RandomSearchCounterOptimizer import RandomSearchCounterOptimizer
+from src.acfx import RandomSearchCounterOptimizer
 from src.acfx import AcfxCustom
 from src.acfx.abstract import ModelBasedCounterOptimizer
 from src.acfx.evaluation.loss import compute_causal_penalty

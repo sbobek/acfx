@@ -47,7 +47,7 @@ cd acfx/src
 pip install .
 ```
 
-
+**Note**: The `requirements.txt` file includes additional packages that are not required for standard use. It is provided for development purposes and to support reproducibility of the complete development environment. Direct runtime dependencies are specified in `pyproject.toml`.
 
 ## Quick Start
 

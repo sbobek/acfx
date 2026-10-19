@@ -1,0 +1,4 @@
+[run]
+omit =
+    acfx/benchmark/*
+    acfx/tests/*
