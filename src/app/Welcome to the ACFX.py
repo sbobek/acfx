@@ -1,4 +1,5 @@
 import streamlit as st
+st.set_page_config(layout="wide")
 
 # Page title
 st.title("👋 Welcome to the ACFX Counterfactual Discovery App")

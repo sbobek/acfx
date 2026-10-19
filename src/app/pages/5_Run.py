@@ -241,11 +241,22 @@ else:
     show_init_points_choice()
     show_n_iter_choice()
     show_sampling_from_model_choice()
+
+    categorical_indicator = get_categorical_indicator()
+    all_columns = get_all_columns()
+    df_init = pd.DataFrame([0] * len(all_columns), index=all_columns).T
+    for (col_index, col_name) in enumerate(all_columns):
+        if categorical_indicator[col_index]:
+            df_init[col_name] = df_init[col_name].astype(int)
+        else:
+            df_init[col_name] = df_init[col_name].astype(float)
+
     query_instances = st.data_editor(
-        data=pd.DataFrame([0.] * len(get_all_columns()), index=get_all_columns()).T,
+        data=df_init,
         num_rows='dynamic',
         use_container_width=True,
     )
+
     is_button_disabled = query_instances is None
     if st.button("EVALUATE", disabled=is_button_disabled):
         if query_instances is None:

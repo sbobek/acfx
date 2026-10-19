@@ -112,6 +112,8 @@ class EBMCounterOptimizer(ModelBasedCounterOptimizer):
             # start from the intercept for each sample
             score = self.model.intercept_.copy()
             if isinstance(score, float) or len(score) == 1:
+                if hasattr(score, "shape") and score.shape == (1,):
+                    score = score.item()
                 # regression or binary classification
                 score = float(score)
 

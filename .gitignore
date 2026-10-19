@@ -246,3 +246,5 @@ fabric.properties
 cache
 **/progress.txt
 **/progress_error.txt
+bayesian_network.html
+/.run

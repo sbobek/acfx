@@ -1,0 +1,23 @@
+feature_types ={
+  "Status of existing checking account": "ordinal",
+  "Duration":"continuous" ,
+  "Credit history":"ordinal" ,
+  "Purpose":"nominal" ,
+  "Credit amount": "continuous",
+  "Savings account/bonds": "ordinal",
+  "Present employment since": "ordinal",
+  "Installment rate in percentage of disposable income": "continuous",
+  "Personal status and sex": "nominal",
+  "Other debtors / guarantors": "nominal",
+  "Present residence since": "continuous",
+  "Property": "nominal",
+  "Age": "continuous",
+  "Other installment plans": "nominal",
+  "Housing": "nominal",
+  "Number of existing credits at this bank": "ordinal",
+  "Job": "ordinal",
+  "Number of people being liable to provide maintenance for": "ordinal", # there are only two options: 1 and 2
+  "Telephone": "nominal",
+  "foreign worker": "nominal",
+  "Credit granted": "nominal",
+}

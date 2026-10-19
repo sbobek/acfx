@@ -13,6 +13,8 @@ from utils.session_state import store_value, load_value
 from acfx.evaluation.bayesian_model import train_bayesian_model
 from utils.const import ADJACENCY_OPTION_DIRECTLINGAM,ADJACENCY_OPTION_BAYESIAN
 import io
+import streamlit.components.v1 as components
+from pyvis.network import Network
 
 def reset_adjacency_bayesian():
     if 'bayesian_model' in st.session_state:
@@ -41,22 +43,53 @@ def set_zoom(ax):
 
 @st.cache_data
 def get_graph_data(_G:nx.DiGraph) -> bytes:
-    # for node in _G.nodes():
-    #     _G.nodes[node]['label'] = str(node)
     buffer = io.BytesIO()
     nx.write_graphml(_G, buffer)
     graphml_data = buffer.getvalue()
     return graphml_data
 
 def lingam_causality_display():
-    def generate_adjacency(graph, fig, ax):
-        pos = nx.spring_layout(graph, k=15)
-        nx.draw(graph, pos, with_labels=True, node_color='lightblue', edge_color='gray', node_size=2000, font_size=6)
-        # Display edge weights
-        edge_labels = {(u, v): f"{d['weight']:.2f}" for u, v, d in graph.edges(data=True)}
-        set_zoom(ax)
-        nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels, ax=ax)
-        st.pyplot(fig)
+    import streamlit as st
+    import streamlit.components.v1 as components
+    from pyvis.network import Network
+    import networkx as nx
+    import os
+    def generate_interactive_graph(graph):
+        # 1. Inicjalizacja sieci Pyvis
+        # directed=True zachowuje strzałki relacji Bayesowskich
+        net = Network(
+            height="600px",
+            width="100%",
+            bgcolor="#222222",
+            font_color="white",
+            directed=True
+        )
+
+        for node in graph.nodes():
+            net.add_node(node, label=node, title=node)  # title to tooltip po najechaniu
+
+        for u, v, d in graph.edges(data=True):
+            weight = d.get('weight', 1.0)
+            label = f"{weight:.2f}"
+            net.add_edge(u, v, value=1, label=label, title=label)
+
+        net.toggle_physics(True)
+
+        path = "temp_graph.html"
+        net.save_graph(path)
+
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                html_data = f.read()
+
+            st.subheader("Interactive Bayesian Network Structure")
+            components.html(html_data, height=650, width=1000, scrolling=True)
+
+        except Exception as e:
+            st.error(f"Error rendering graph: {e}")
+        finally:
+            if os.path.exists(path):
+                os.remove(path)
 
     def log_not_dag(graph: nx.DiGraph):
         st.error('Input adjacency matrix is not a directed acyclic graph!\nFound cycle(s):')
@@ -118,15 +151,14 @@ def lingam_causality_display():
     edited_adjacency_matrix = st.data_editor(adjacency_matrix_with_features)
     if not np.array_equal(edited_adjacency_matrix, st.session_state.adjacency_matrix):
         st.session_state.adjacency_matrix = edited_adjacency_matrix
-    info_too_many_features_for_graph()
+    info_graph_interactive()
     if st.checkbox(label="🔄 Generate adjacency graph",
                        key="_generate_graph", on_change=store_value, args=['generate_graph']):
-        fig, ax = plt.subplots()
         G = nx.DiGraph(st.session_state.adjacency_matrix)
         if not nx.is_directed_acyclic_graph(G):
             log_not_dag(G)
         else:
-            generate_adjacency(G, fig, ax)
+            generate_interactive_graph(G)
             st.download_button(
                 label="Download Graph as GraphML",
                 data=get_graph_data(G),
@@ -145,13 +177,51 @@ def lingam_causality_display():
     validate_adjacency_order()
 
 
-def info_too_many_features_for_graph():
-    if len(st.session_state.selected_X.columns) > 4:
+def info_graph_interactive():
         st.info(
-            f"Graph might be not too pretty for large amount of features. You have {len(st.session_state.selected_X.columns)}.")
+            f"Note that the generated DAG is interactive (try to zoom in/out or touch/move the nodes).")
 
 
 def bayesian_causality_display():
+
+    def draw_interactive_bayesian_net(G):
+        net = Network(
+            height="500px",
+            width="100%",
+            bgcolor="#ffffff",
+            font_color="black",
+            directed=True,
+            cdn_resources='remote'
+        )
+        net.from_nx(G)
+
+        for node in net.nodes:
+            node['color'] = '#ADD8E6'
+            node['size'] = 25
+            node['font'] = {'size': 12, 'weight': 'bold'}
+
+        net.set_options("""
+        var options = {
+          "physics": {
+            "barnesHut": {
+              "gravitationalConstant": -30000,
+              "centralGravity": 0.3,
+              "springLength": 100
+            },
+            "minVelocity": 0.75
+          },
+          "interaction": {
+            "zoomView": true,
+            "dragView": true
+          }
+        }
+        """)
+
+        html_content = net.generate_html()
+
+        st.subheader("Interactive Bayesian Network Graph")
+        components.html(html_content, height=550, scrolling=True, width=1000)
+
     def plot_cpd_table(bayesian_model: DiscreteBayesianNetwork):
         st.title("Bayesian Network Visualization")
 
@@ -165,27 +235,14 @@ def bayesian_causality_display():
             st.warning(f'No edges found in {ADJACENCY_OPTION_BAYESIAN}. Structure of the DAG indicates no causality between nodes.')
             return
 
-        info_too_many_features_for_graph()
+        info_graph_interactive()
         if st.checkbox(label="🔄 Generate Bayesian Network graph",
                        key="_generate_graph", on_change=store_value, args=['generate_graph']):
             G = nx.DiGraph()
             G.add_nodes_from(nodes)
             G.add_edges_from(edges)
 
-            fig, ax = plt.subplots(figsize=(6, 4))
-            set_zoom(ax)
-            pos = nx.spring_layout(G)
-            nx.draw(G, pos,
-                    with_labels=True,
-                    node_size=2000,
-                    node_color='lightblue',
-                    font_size=6,
-                    font_weight='bold',
-                    arrows=True,
-                    ax=ax)
-
-            ax.set_title("Bayesian Network Graph")
-            st.pyplot(fig)
+            draw_interactive_bayesian_net(G)
 
             st.download_button(
                 label="Download Graph as GraphML",
