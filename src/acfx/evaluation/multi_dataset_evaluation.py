@@ -1,4 +1,5 @@
 import lingam
+import pandas as pd
 from interpret.glassbox import ExplainableBoostingClassifier
 from sklearn.metrics import accuracy_score
 
@@ -31,11 +32,11 @@ def preprocess_ds(ds):
         has_train_but_not_test = unique_classes_train - unique_classes_test
         if len(has_train_but_not_test) > 0:
             filtered_rows = ds_df_train[ds_df_train[ds.target].isin(has_train_but_not_test)]
-            ds_df_test = ds_df_test.append(filtered_rows)
+            ds_df_test = pd.concat([ds_df_test, filtered_rows])
         has_test_but_not_train = unique_classes_test - unique_classes_train
         if len(has_test_but_not_train):
             filtered_rows = ds_df_test[ds_df_test[ds.target].isin(has_test_but_not_train)]
-            ds_df_train = ds_df_train.append(filtered_rows)
+            ds_df_train = pd.concat([ds_df_train, filtered_rows])
     return ds_df_train, ds_df_test
 
 def train_ebm_model(ds, random_state, n_jobs=-1, interactions=0, debug=False):
