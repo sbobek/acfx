@@ -2,6 +2,7 @@ import streamlit as st
 from utils.const import ADJACENCY_OPTION_DIRECTLINGAM,ADJACENCY_OPTION_BAYESIAN
 from utils.session_state import store_value, load_value
 from utils.key_helper import calc_pbounds, get_pbounds_key, get_masked_feature_key
+from utils.run_helpers import categorical_feature_names, continuous_slider_range
 
 if 'classifier_name' not in st.session_state or st.session_state.classifier_name is None:
     st.warning("⚠️ Start by initializing classifier in 'Classifier selection'")
@@ -16,7 +17,7 @@ elif st.session_state.plausibility_loss_on \
 else:
     if st.session_state.selected_X is None:
         raise ValueError("selected_X must be initialized in session state")
-    categorical_indicator = categorical_columns = st.session_state.feature_types.query("Type in ['nominal', 'ordinal']")["Column Name"].tolist()
+    categorical_indicator = categorical_feature_names(st.session_state.feature_types)
     initial_pbounds = calc_pbounds(st.session_state.selected_X, categorical_indicator)
     st.session_state['pbounds'] = initial_pbounds
     st.subheader("The bounds for each feature to search over")
@@ -38,10 +39,11 @@ else:
                 args= [pbounds_key]
                 )
         else:
+            slider_min, slider_max = continuous_slider_range(min, max)
             start,end=st.slider(
                 feature_name,
-                min_value=float(min - 3*abs(max-min)),
-                max_value=float(max + 3*abs(max-min)),
+                min_value=slider_min,
+                max_value=slider_max,
                 key=f"_{pbounds_key}",
                 on_change=store_value,
                 args= [pbounds_key]

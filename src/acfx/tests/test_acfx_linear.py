@@ -1,46 +1,39 @@
+"""End-to-end behaviour of AcfxLinear (linear-additive blackbox, e.g. LogisticRegression)."""
 import pytest
-import numpy as np
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
-from sklearn.datasets import load_iris
 
-from src.acfx.AcfxLinear import AcfxLinear
-from src.acfx.evaluation.loss import compute_causal_penalty
+from acfx import AcfxLinear
+from acfx.evaluation.loss import compute_causal_penalty
+from acfx.tests.helpers import FAST, IRIS_ADJACENCY, IRIS_CAUSAL_ORDER, assert_within_bounds, other_class
 
 
-@pytest.fixture
-def sample_data():
-    data = load_iris(as_frame=True)
-    X = data.data
-    y = data.target
-    return train_test_split(X, y, test_size=0.2, random_state=42)
+def test_counterfactual_reaches_desired_class_within_bounds(lr_model, X_test, pbounds, features_order,
+                                                           query_instance):
+    desired_class = other_class(lr_model, query_instance)
+    explainer = AcfxLinear(lr_model).fit(X=X_test, pbounds=pbounds, causal_order=IRIS_CAUSAL_ORDER,
+                                         adjacency_matrix=IRIS_ADJACENCY, features_order=features_order)
 
-def test_counterfactual_has_causal_penalty(sample_data):
-    X_train, X_test, y_train, y_test = sample_data
-    model = LogisticRegression()
-    model.fit(X_train, y_train)
-    explainer = AcfxLinear(model)
+    cf = explainer.counterfactual(desired_class=desired_class, query_instance=query_instance,
+                                  plausibility_weight=1, **FAST)
 
-    query_instance = X_test.iloc[0].values
-    original_class = model.predict([query_instance])[0]
+    assert explainer.predict(cf)[0] == desired_class
+    assert_within_bounds(cf, pbounds, features_order)
 
-    pbounds = {col: (X_train[col].min(), X_train[col].max()) for col in X_train.columns}
-    features_order = X_train.columns.tolist()
 
-    adjacency_matrix = np.array([
-        [0.0, 0.0, 0.0, 0.0],
-        [0.8, 0.0, 0.0, 0.0],
-        [0.0, 0.6, 0.0, 0.0],
-        [0.5, 0.0, 0.7, 0.0]
-    ])
+def test_counterfactual_has_causal_penalty(lr_model, X_test, pbounds, features_order, query_instance):
+    explainer = AcfxLinear(lr_model).fit(X=X_test, pbounds=pbounds, causal_order=IRIS_CAUSAL_ORDER,
+                                         adjacency_matrix=IRIS_ADJACENCY, features_order=features_order)
 
-    causal_order = list(range(len(features_order)))
+    cf = explainer.counterfactual(desired_class=other_class(lr_model, query_instance),
+                                  query_instance=query_instance, **FAST)
 
-    explainer.fit(X=X_test, pbounds=pbounds, causal_order=causal_order, adjacency_matrix=adjacency_matrix,
-                  features_order=features_order)
+    assert compute_causal_penalty(cf, IRIS_ADJACENCY, IRIS_CAUSAL_ORDER) > 0
 
-    cf = explainer.counterfactual(desired_class=original_class, query_instance=query_instance)
 
-    cfs_causal_penalty = compute_causal_penalty(cf, adjacency_matrix, causal_order)
-
-    assert cfs_causal_penalty is not None and cfs_causal_penalty > 0
+@pytest.mark.parametrize("num_counterfactuals", [1, 3])
+def test_returns_requested_number_of_distinct_counterfactuals(lr_model, X_train, pbounds, features_order,
+                                                             query_instance, num_counterfactuals):
+    explainer = AcfxLinear(lr_model).fit(X=X_train, pbounds=pbounds, features_order=features_order)
+    cfs = explainer.counterfactual(desired_class=other_class(lr_model, query_instance),
+                                   query_instance=query_instance, num_counterfactuals=num_counterfactuals, **FAST)
+    assert cfs.shape == (num_counterfactuals, len(features_order))
+    assert len({tuple(row) for row in cfs}) == num_counterfactuals

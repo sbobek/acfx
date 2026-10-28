@@ -1,17 +1,15 @@
-import lingam
-import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import pandas as pd
 import streamlit as st
-from pgmpy.estimators import MaximumLikelihoodEstimator
-from pgmpy.models import BayesianNetwork, DiscreteBayesianNetwork
-from sklearn.metrics import mutual_info_score
+from pgmpy.models import DiscreteBayesianNetwork
 from streamlit_sortables import sort_items
 from utils.features_by_type import get_continuous_cols, get_categorical_indicator, get_all_columns, get_ordinal_cols,get_nominal_cols
 from utils.session_state import store_value, load_value
 from acfx.evaluation.bayesian_model import train_bayesian_model
 from utils.const import ADJACENCY_OPTION_DIRECTLINGAM,ADJACENCY_OPTION_BAYESIAN
+from utils.causal_graph import (default_adjacency_generator, find_order_violations, order_indices_to_names,
+                                train_causal_model)
 import io
 import streamlit.components.v1 as components
 from pyvis.network import Network
@@ -29,7 +27,7 @@ def reset_adjacency_lingam():
     store_value('plausibility_loss_on')
 
 
-def set_zoom(ax):
+def set_zoom(ax):  # pragma: no cover - not used by any page
     load_value('zoom_factor', 1)
     st.slider(
         "Zoom Level (Adjust to zoom in/out)",
@@ -54,7 +52,7 @@ def lingam_causality_display():
     from pyvis.network import Network
     import networkx as nx
     import os
-    def generate_interactive_graph(graph):
+    def generate_interactive_graph(graph):  # pragma: no cover - pyvis rendering only
         # 1. Inicjalizacja sieci Pyvis
         # directed=True zachowuje strzałki relacji Bayesowskich
         net = Network(
@@ -97,12 +95,7 @@ def lingam_causality_display():
             st.error(f"\nCycle {i}: {' → '.join(cycle)}")
 
     def validate_adjacency_order():
-        graph = nx.DiGraph(st.session_state.adjacency_matrix)
-        position = {node: i for i, node in enumerate(st.session_state.causal_order)}
-        violations = []
-        for u, v in graph.edges():
-            if position[u] <= position[v]:
-                violations.append((u, v))
+        violations = find_order_violations(st.session_state.adjacency_matrix, st.session_state.causal_order)
         if violations:
             st.error("Adjacency order is NOT valid. Violations found:")
             for u, v in violations:
@@ -110,38 +103,16 @@ def lingam_causality_display():
 
     def edit_adjacency_order(causal_order):
         if 'causal_order' not in st.session_state:
-            feature_names = st.session_state.selected_X.columns
-            ordered_features = list(map(lambda x: feature_names[x], causal_order))
+            ordered_features = order_indices_to_names(st.session_state.selected_X.columns, causal_order)
             st.session_state.causal_order = ordered_features.copy()
         causal_order = sort_items(st.session_state.causal_order, direction="vertical")
         if causal_order != st.session_state.causal_order:
             st.session_state.causal_order = causal_order.copy()
         # st.write("causal order:", st.session_state.causal_order)
 
-    def train_causal_model(X):
-        continuous_cols = get_continuous_cols()
-        X_continuous = X[continuous_cols]
-        causal_model = lingam.DirectLiNGAM()
-        causal_model.fit(X_continuous)
-        adjacency_matrix = causal_model.adjacency_matrix_
-        causal_order = causal_model.causal_order_
-
-        full_adj_matrix = np.zeros((X.shape[1], X.shape[1]))
-
-        original_indices = [X.columns.get_loc(col) for col in continuous_cols]
-        causal_order_mapped = [original_indices[i] for i in causal_order]
-
-        for row in causal_order:
-            for col in causal_order:
-                full_adj_matrix[original_indices[row], original_indices[col]] = adjacency_matrix[row, col]
-
-        missing_indices = list(set(range(X.shape[1])) - set(causal_order_mapped))
-        full_causal_order = sorted(missing_indices) + causal_order_mapped
-
-        return causal_model, full_adj_matrix, full_causal_order
-
     reset_adjacency_bayesian()
-    causal_model, full_adj_matrix, causal_order_mapped = train_causal_model(st.session_state.selected_X)
+    causal_model, full_adj_matrix, causal_order_mapped = train_causal_model(st.session_state.selected_X,
+                                                                                 get_continuous_cols())
 
     st.subheader("Edit Adjacency Matrix")
     adjacency_matrix_with_features = pd.DataFrame(full_adj_matrix, columns=st.session_state.selected_X.columns,
@@ -184,7 +155,7 @@ def info_graph_interactive():
 
 def bayesian_causality_display():
 
-    def draw_interactive_bayesian_net(G):
+    def draw_interactive_bayesian_net(G):  # pragma: no cover - pyvis rendering only
         net = Network(
             height="500px",
             width="100%",
@@ -275,10 +246,7 @@ def bayesian_causality_display():
     plot_cpd_table(st.session_state.bayesian_model)
 
 def get_default_adjacency_generator_name():
-    if len(get_continuous_cols()) > 0:
-        return ADJACENCY_OPTION_BAYESIAN
-    else:
-        return ADJACENCY_OPTION_DIRECTLINGAM
+    return default_adjacency_generator(get_all_columns(), get_continuous_cols())
 
 load_value('generate_graph', False)
 

@@ -1,14 +1,8 @@
-import numpy as np
 import pandas as pd
-from pandas.core.dtypes.common import is_numeric_dtype, is_categorical_dtype
-from sklearn.datasets import (load_iris, load_wine,
-                              # load_digits,
-                              load_breast_cancer)
-# from sklearn.datasets import load_diabetes
 import streamlit as st
 from utils.session_state import load_value, store_value
-from sklearn.utils import Bunch
-from pathlib import Path
+from utils.data_loading import (BUILTIN_DATASETS, builtin_feature_types, infer_feature_types, load_builtin_dataset,
+                                split_features_and_label)
 
 def mark_all_on():
     for key in st.session_state.keys():
@@ -70,70 +64,6 @@ def save_input_data(X, y, data_source_name, data):
     st.session_state.y = y
     st.session_state.data_source_name = data_source_name
     st.session_state.data = data
-
-def is_categorical_like(series, max_unique_ratio=0.1, max_unique_absolute=50):
-    def is_integer_like():
-        return pd.api.types.is_float_dtype(series) and (series.dropna() % 1 == 0).all()
-
-    if pd.api.types.is_categorical_dtype(series):
-        return True
-    if pd.api.types.is_object_dtype(series) or pd.api.types.is_integer_dtype(series) or is_integer_like():
-        unique_count = series.nunique(dropna=True)
-        total_count = len(series)
-        return (unique_count / total_count <= max_unique_ratio) or (unique_count <= max_unique_absolute)
-    return False
-
-def set_feature_types(data_instances, feature_names):
-    feature_types = []
-    for col in feature_names:
-        if is_numeric_dtype(data_instances[col]):
-            if is_categorical_like(data_instances[col]):
-                feature_types.append({'Column Name': col, 'Type': 'nominal', "is_on": False})
-            else:
-                feature_types.append({'Column Name': col, 'Type': 'continuous', "is_on": True})
-        else:
-            raise ValueError(f"non-numerical feature found: {col}. For any kind of categorical feature, you need to preprocess first")
-
-    st.session_state.feature_types = pd.DataFrame(feature_types)
-
-def set_feature_types_german_credit(data_instances, feature_names):
-    german_features = {
-        "Status of existing checking account": "ordinal",
-        "Duration": "continuous",
-        "Credit history": "ordinal",
-        "Purpose": "nominal",
-        "Credit amount": "continuous",
-        "Savings account/bonds": "ordinal",
-        "Present employment since": "ordinal",
-        "Installment rate in percentage of disposable income": "continuous",
-        "Personal status and sex": "nominal",
-        "Other debtors / guarantors": "nominal",
-        "Present residence since": "continuous",
-        "Property": "nominal",
-        "Age": "continuous",
-        "Other installment plans": "nominal",
-        "Housing": "nominal",
-        "Number of existing credits at this bank": "ordinal",
-        "Job": "ordinal",
-        "Number of people being liable to provide maintenance for": "ordinal",  # there are only two options: 1 and 2
-        "Telephone": "nominal",
-        "foreign worker": "nominal",
-        "Credit granted": "nominal",
-    }
-    ft = []
-    for col in feature_names:
-        if col not in german_features.keys():
-            if is_numeric_dtype(data_instances[col]):
-                if is_categorical_like(data_instances[col]):
-                    ft.append({'Column Name': col, 'Type': 'nominal', "is_on": False})
-                else:
-                    ft.append({'Column Name': col, 'Type': 'continuous', "is_on": True})
-            else:
-                raise ValueError(f"non-numerical feature found: {col}. For any kind of categorical feature, you need to preprocess first")
-        else:
-            ft.append({'Column Name': col, 'Type': german_features[col], "is_on": bool(german_features[col] == 'continuous')})
-
-    st.session_state.feature_types = pd.DataFrame(ft)
 
 def init_session_state():
     if "feature_types" not in st.session_state:
@@ -203,30 +133,6 @@ def data_source_changed(data_source_name):
     clear_features_session_state()
     store_value(data_source_name)
 
-def load_german_credit_data() -> Bunch:
-    current_dir = Path(__file__).parent
-    file_path = current_dir.parent / 'german_credit_numeric.csv'
-
-    if not file_path.exists():
-        raise FileNotFoundError(f"german credit dataset not found: {file_path}")
-
-    bunch_df = pd.read_csv(file_path)
-    target_column = 'Credit granted'
-    if target_column not in bunch_df.columns:
-        raise ValueError(f"german credit csv dataset is invalid: '{target_column}' column missing. Columns available: {list(bunch_df.columns)}")
-
-    bunch_X = bunch_df.drop(columns=[target_column])
-    bunch_y = bunch_df[target_column]
-
-    data = Bunch(
-        data=bunch_X,
-        target=bunch_y,
-        frame=bunch_df,
-        feature_names=list(bunch_X.columns),
-        target_names=np.array(['Not Granted', 'Granted'])
-    )
-    return data
-
 init_session_state()
 st.title("🔍 Select data")
 
@@ -236,36 +142,22 @@ if st.session_state.source == "Builtin":
     st.session_state.drop_na = False
     st.session_state.data_loaded = False
     load_value('data_source_name')
-    st.radio("Dataset:", ['iris', 'wine',  'breast cancer', 'german credit'],
+    st.radio("Dataset:", BUILTIN_DATASETS,
                                              key='_data_source_name', on_change=data_source_changed, args=['data_source_name'])
-    data = None
-    if st.session_state.data_source_name == 'iris':
-        data = load_iris(as_frame=True)
-    elif st.session_state.data_source_name == 'wine':
-        data = load_wine(as_frame=True)
-    elif st.session_state.data_source_name == 'breast cancer':
-        data = load_breast_cancer(as_frame=True)
-    elif st.session_state.data_source_name == 'german credit':
-        data = load_german_credit_data()
-    elif st.session_state.data_source_name is not None:
-        raise ValueError(f"data_source_name: {st.session_state.data_source_name} is out of range")
-
     if st.session_state.data_source_name is not None:
+        data = load_builtin_dataset(st.session_state.data_source_name)
         X = data.data
         y = data.target
 
         try:
-            if st.session_state.data_source_name == 'german credit':
-                set_feature_types_german_credit(data_instances=data.data, feature_names=data.feature_names)
-            else:
-                set_feature_types(data_instances=data.data, feature_names=data.feature_names)
+            st.session_state.feature_types = builtin_feature_types(st.session_state.data_source_name, data)
             save_input_data(X, y, st.session_state.data_source_name, data)
             st.session_state.data_loaded = True
         except ValueError as e:
             st.error(e)
 
 
-elif st.session_state.source == "CSV file":
+elif st.session_state.source == "CSV file":  # pragma: no cover - st.file_uploader cannot be driven by AppTest
     st.info(
         "Please preprocess your data to meet the classifier's fit() requirements. "
         "Without preprocessing, fitting may fail or be in inefficient depending on the classifier.")
@@ -292,9 +184,8 @@ elif st.session_state.source == "CSV file":
             if st.checkbox("Drop NaN", key="_drop_na", on_change=store_value, args=['drop_na']):
                 data.dropna(inplace=True)
             try:
-                X = data.drop(columns=[st.session_state.label_column])
-                y = data[st.session_state.label_column]
-                set_feature_types(data_instances=data, feature_names=data.columns)
+                X, y = split_features_and_label(data, st.session_state.label_column)
+                st.session_state.feature_types = infer_feature_types(data_instances=data, feature_names=data.columns)
                 st.session_state.data_loaded = True
             except ValueError as e:
                 st.error(e)

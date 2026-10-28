@@ -109,6 +109,21 @@ Learn more and explore advanced examples:
 
 
 
+## Testing
+
+The library and the Streamlit GUI are covered by an automated pytest suite with code coverage measurement:
+
+```bash
+git clone https://github.com/sbobek/acfx
+cd acfx/src
+pip install -e ".[test,streamlit-app]"
+pytest --cov
+```
+
+See [TESTING.md](https://github.com/sbobek/acfx/blob/main/TESTING.md) for details (fast mode, HTML coverage report, what is excluded from coverage and why).
+
+
+
 ## Benchmarking
 
 ### Install dependencies
