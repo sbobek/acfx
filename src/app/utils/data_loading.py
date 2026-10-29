@@ -37,9 +37,11 @@ def is_categorical_like(series, max_unique_ratio=0.1, max_unique_absolute=50):
     def is_integer_like():
         return pd.api.types.is_float_dtype(series) and (series.dropna() % 1 == 0).all()
 
-    if pd.api.types.is_categorical_dtype(series):
+    if isinstance(series.dtype, pd.CategoricalDtype):
         return True
-    if pd.api.types.is_object_dtype(series) or pd.api.types.is_integer_dtype(series) or is_integer_like():
+    # pandas>=3 stores text in the dedicated 'str' dtype instead of object
+    if pd.api.types.is_object_dtype(series) or pd.api.types.is_string_dtype(series) \
+            or pd.api.types.is_integer_dtype(series) or is_integer_like():
         unique_count = series.nunique(dropna=True)
         total_count = len(series)
         return (unique_count / total_count <= max_unique_ratio) or (unique_count <= max_unique_absolute)

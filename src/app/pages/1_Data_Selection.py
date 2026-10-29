@@ -32,10 +32,13 @@ def show_dane_wejsciowe():
         for i, row in st.session_state.feature_types.iterrows():
             key_type_select = f"type_select_{i}"
             type_options = ["continuous", "nominal", "ordinal"]
+            # The initial value goes through session state, not `index`: since streamlit 1.5x a keyed widget keeps its
+            # browser-side value when only `index` changes, so a new dataset would inherit the previous dataset's types.
+            if key_type_select not in st.session_state:
+                st.session_state[key_type_select] = row['Type']
             selected_type = st.selectbox(
                 row['Column Name'],
                 options= type_options,
-                index=type_options.index(row['Type']),
                 key=key_type_select
             )
             key_is_on_select = f"is_on_{i}"

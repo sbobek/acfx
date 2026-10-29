@@ -22,7 +22,10 @@ def button(app, label):
 
 def persisted_state(app):
     """Values kept by the app between pages (widget keys starting with '_' are re-created by load_value)."""
-    return {k: v for k, v in app.session_state.filtered_state.items() if not k.startswith("_")}
+    state = app.session_state
+    # streamlit>=1.5x exposes keys() on AppTest's session state, older versions only filtered_state
+    keys = state.keys() if hasattr(state, "keys") else state.filtered_state.keys()
+    return {k: state[k] for k in keys if not k.startswith("_")}
 
 
 def test_welcome_page_renders():
