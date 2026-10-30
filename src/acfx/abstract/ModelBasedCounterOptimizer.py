@@ -19,4 +19,4 @@ class ModelBasedCounterOptimizer(ABC):
         -------
         Dictionary of feature names and their optimized values
         """
-        pass
+        pass  # pragma: no cover - abstract

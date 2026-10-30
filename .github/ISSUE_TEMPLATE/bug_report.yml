@@ -1,0 +1,92 @@
+name: Bug report
+description: Report a reproducible problem with ACFX
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a problem with ACFX. Please provide enough information to reproduce and diagnose the issue.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem description
+      description: Clearly describe the problem and when it occurs.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproducible example
+      description: Provide the smallest complete example that reproduces the problem. Remove sensitive data.
+      render: python
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead?
+    validations:
+      required: true
+
+  - type: input
+    id: acfx_version
+    attributes:
+      label: ACFX version
+      description: Provide the installed version or commit hash.
+      placeholder: "For example: 0.1.0 or commit abc1234"
+    validations:
+      required: true
+
+  - type: input
+    id: python_version
+    attributes:
+      label: Python version
+      placeholder: "For example: 3.11.9"
+    validations:
+      required: true
+
+  - type: input
+    id: operating_system
+    attributes:
+      label: Operating system
+      placeholder: "For example: Ubuntu 24.04, Windows 11, or macOS 15"
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Relevant dependency versions
+      description: List versions of libraries that may be related to the problem.
+      placeholder: |
+        numpy==...
+        pandas==...
+        scikit-learn==...
+        interpret==...
+
+  - type: textarea
+    id: traceback
+    attributes:
+      label: Error message or traceback
+      description: Paste the complete error message or traceback, if applicable.
+      render: shell
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional context
+      description: Add logs, screenshots, links, or other relevant information.
