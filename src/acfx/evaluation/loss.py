@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 from pgmpy.models import DiscreteBayesianNetwork
 from scipy.spatial.distance import pdist, squareform
@@ -36,7 +38,9 @@ def compute_causal_penalty_bayesian_adjacency(samples, model : DiscreteBayesianN
             assignment = {node: node_value, **dict(zip(parents, parent_values))}
             if any(value not in cpd.state_names[var] for var, value in assignment.items()):
                 # state never observed in the data: pgmpy would read it as a raw index, treat it as implausible
-                prob = 0.0
+                warnings.warn(f"Bayesian plausibility: {assignment} contains a state never observed in the data "
+                              f"of node '{node}', using the maximum penalty.")
+                prob = 1e-8
             else:
                 prob = cpd.get_value(**assignment)
             if np.abs(prob) < 1e-8:

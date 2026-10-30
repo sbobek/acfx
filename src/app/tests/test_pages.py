@@ -227,6 +227,53 @@ def test_counterfactual_run_shows_query_and_counterfactuals(evaluation_state):
     assert result.columns.tolist() == evaluation_state["selected_X"].columns.tolist()
 
 
+@pytest.mark.parametrize("generator, blocked", [(ADJACENCY_OPTION_BAYESIAN, True),
+                                                (ADJACENCY_OPTION_DIRECTLINGAM, False)])
+def test_run_blocks_unknown_frozen_category_only_for_bayesian_plausibility(evaluation_state, monkeypatch, generator,
+                                                                           blocked):
+    X = evaluation_state["selected_X"]
+    frozen, masked = X.columns[0], X.columns[1]
+    feature_types = evaluation_state["feature_types"].copy()
+    feature_types.loc[feature_types["Column Name"] == frozen, "Type"] = "ordinal"
+    query = X.head(1).astype({frozen: int}).reset_index(drop=True)
+    query[frozen] = 999
+    monkeypatch.setattr("utils.run_helpers.query_template", lambda *_: query)
+    state = {**evaluation_state, "feature_types": feature_types, "plausibility_loss_on": True, "plausibility_loss": 1,
+             "adjacency_generator_name": generator, f"{masked}_is_masked": True}
+
+    app = with_state(page("5_Run.py"), state).run()
+
+    assert_no_exception(app)
+    assert button(app, "COUNTERFACTUAL").disabled == blocked
+    assert any(frozen in error.value for error in app.error) == blocked
+
+
+def test_run_blocks_incomplete_query_without_plausibility_loss(evaluation_state, monkeypatch):
+    query = pd.concat([evaluation_state["selected_X"].head(1), pd.DataFrame([{}])], ignore_index=True)
+    monkeypatch.setattr("utils.run_helpers.query_template", lambda *_: query)
+
+    app = with_state(page("5_Run.py"), evaluation_state).run()
+
+    assert_no_exception(app)
+    assert button(app, "COUNTERFACTUAL").disabled
+    assert len(app.error) == 1 and "Query 2" in app.error[0].value
+
+
+@pytest.mark.slow
+def test_counterfactual_run_warns_about_query_outside_bounds(evaluation_state):
+    feature = evaluation_state["selected_X"].columns[0]
+    value = evaluation_state["selected_X"][feature].iloc[0]
+    state = {**evaluation_state, f"{feature}_pbounds": (value + 1, value + 2)}
+    app = with_state(page("5_Run.py"), state).run()
+    app.selectbox(key="_desired_class").set_value("virginica").run()
+    app.number_input(key="_n_iter").set_value(10).run()
+    app.number_input(key="_init_points").set_value(2).run()
+    button(app, "COUNTERFACTUAL").click().run()
+
+    assert_no_exception(app)
+    assert any(feature in warning.value and "outside the bounds" in warning.value for warning in app.warning)
+
+
 @pytest.mark.slow
 @pytest.mark.parametrize("generator", [ADJACENCY_OPTION_DIRECTLINGAM, ADJACENCY_OPTION_BAYESIAN])
 def test_full_flow_through_all_pages(generator):

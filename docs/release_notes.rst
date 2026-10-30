@@ -26,6 +26,7 @@ Streamlit app
 * Fixed: EBM ``interactions`` given as ``"<float>x"`` was ignored
 * Fixed: masked features list contained duplicated internal keys
 * Fixed: selecting an ordinal feature type on the data selection page
+* Fixed: corrected discretization in Bayesian plausibility scenario
 * ``pyarrow<25`` pinned for Python<3.12 (newer versions do not work with numpy 1.26)
 
 Testing and documentation

@@ -8,7 +8,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 
 from acfx import AcfxLinear
-from acfx.evaluation import discretize_ndarray, train_bayesian_model
+from acfx.evaluation import compute_bin_edges, discretize_ndarray, train_bayesian_model
 from acfx.evaluation.loss import compute_loss_bayesian
 from acfx.tests.helpers import FAST, SEED, assert_within_bounds, other_class
 
@@ -66,8 +66,9 @@ def test_bayesian_mode_works_with_valid_params(sample_data, linear_model, pbound
         if is_categorical:
             assert result[0, i] == np.round(result[0, i])
 
+    edges = compute_bin_edges(X_test[FEATURES].to_numpy(), CATEGORICAL_INDICATOR, NUM_BINS)
     loss = compute_loss_bayesian(model=linear_model, cfs=result,
-                                 cfs_categorized=discretize_ndarray(result, CATEGORICAL_INDICATOR, NUM_BINS),
+                                 cfs_categorized=discretize_ndarray(result, CATEGORICAL_INDICATOR, edges),
                                  query_instance=query_instance, desired_class=desired_class,
                                  bayesian_model=acfx.bayesian_model, proximity_weight=1, sparsity_weight=1,
                                  plausibility_weight=1, diversity_weight=1, pbounds=pbounds,

@@ -15,8 +15,10 @@ from acfx import AcfxCustom, AcfxEBM, AcfxLinear, RandomSearchCounterOptimizer
 from utils.key_helper import calc_pbounds
 from utils.run_helpers import (acfx_for_classifier, categorical_feature_names, causal_order_to_indices,
                                class_probabilities_text, continuous_slider_range, counterfactuals_table,
-                               fit_explainer, masked_features, numeric_desired_class, pbounds_from_state,
-                               prediction_label, query_template, target_class_list)
+                               fit_explainer, frozen_category_errors, incomplete_query_errors, masked_features,
+                               numeric_desired_class,
+                               pbounds_from_state,
+                               prediction_label, query_template, query_warnings, target_class_list)
 
 
 def test_calc_pbounds_uses_data_range_and_integer_bounds_for_categorical():
@@ -119,11 +121,80 @@ def test_numeric_desired_class():
     assert numeric_desired_class(0, np.array(["no", "yes"])) == 0
 
 
-def test_query_template_has_one_zero_row_with_integer_categorical_columns():
-    template = query_template(["x", "c"], [False, True])
+def test_query_template_is_a_data_row_with_integer_categorical_columns():
+    data = pd.DataFrame({"x": [2.5, 3.5], "c": [1.0, 4.0]}, index=[7, 8])
+    template = query_template(data, [False, True])
     assert template.shape == (1, 2)
+    assert template.index.tolist() == [0]
     assert template.dtypes.tolist() == [np.dtype(float), np.dtype(int)]
-    assert template.iloc[0].tolist() == [0, 0]
+    assert template.iloc[0].tolist() == [2.5, 1]
+
+
+def test_query_template_skips_rows_with_missing_values():
+    data = pd.DataFrame({"x": [np.nan, 3.5], "c": [1.0, 4.0]})
+    assert query_template(data, [False, True]).iloc[0].tolist() == [3.5, 4]
+
+
+def test_query_template_handles_data_without_complete_rows():
+    data = pd.DataFrame({"x": [np.nan, 3.5], "c": [1.0, np.nan]})
+    assert query_template(data, [False, True]).iloc[0].tolist() == [0.0, 1]
+
+
+def test_query_warnings_accepts_the_query_template():
+    data = pd.DataFrame({"x": [0.5, 2.5], "c": [1, 4]})
+    pbounds = {"x": (0.5, 2.5), "c": (1, 4)}
+    assert query_warnings(query_template(data, [False, True]), data, pbounds, [False, True]) == []
+
+
+def test_query_warnings_reports_unknown_category_and_value_outside_bounds():
+    data = pd.DataFrame({"x": [0.5, 2.5], "c": [1, 4]})
+    pbounds = {"x": (0.5, 2.5), "c": (1, 4)}
+    query = pd.DataFrame({"x": [9.0, 1.0], "c": [1, 0]})
+
+    result = query_warnings(query, data, pbounds, [False, True])
+
+    assert len(result) == 2
+    assert "Query 1: 'x'" in result[0] and "bounds" in result[0]
+    assert "Query 2: 'c'" in result[1] and "does not occur" in result[1]
+
+
+def test_query_warnings_rejects_category_between_observed_values():
+    data = pd.DataFrame({"c": [1, 4]})
+    assert len(query_warnings(pd.DataFrame({"c": [2]}), data, {"c": (1, 4)}, [True])) == 1
+
+
+def test_frozen_category_errors_reports_unknown_value_of_unmasked_feature():
+    data = pd.DataFrame({"x": [0.5, 2.5], "c": [1, 4]})
+    errors = frozen_category_errors(pd.DataFrame({"x": [1.0], "c": [0]}), data, ["x"], [False, True])
+    assert len(errors) == 1 and "'c' = 0" in errors[0]
+
+
+@pytest.mark.parametrize("query, masked", [
+    ({"x": [1.0], "c": [1]}, ["x"]),  # the value occurs in the data
+    ({"x": [1.0], "c": [0]}, ["c"]),  # the feature may change, the query value is not used
+    ({"x": [1.0], "c": [0]}, []),  # no masked features: every feature may change
+    ({"x": [99.0], "c": [1]}, ["c"]),  # continuous features are out of scope
+], ids=["known_value", "masked_feature", "nothing_masked", "continuous_feature"])
+def test_frozen_category_errors_accepts_other_cases(query, masked):
+    data = pd.DataFrame({"x": [0.5, 2.5], "c": [1, 4]})
+    assert frozen_category_errors(pd.DataFrame(query), data, masked, [False, True]) == []
+
+
+def test_incomplete_query_errors_reports_each_incomplete_row_once():
+    query = pd.DataFrame({"x": [1.0, np.nan, 2.0], "c": [1, np.nan, np.nan]})
+    errors = incomplete_query_errors(query)
+    assert len(errors) == 2
+    assert errors[0].startswith("Query 2:") and errors[1].startswith("Query 3:")
+
+
+def test_incomplete_query_errors_accepts_complete_rows():
+    assert incomplete_query_errors(pd.DataFrame({"x": [1.0], "c": [1]})) == []
+
+
+def test_frozen_category_errors_leaves_incomplete_rows_to_incomplete_query_errors():
+    data = pd.DataFrame({"x": [0.5, 2.5], "c": [1, 4]})
+    query = pd.DataFrame({"x": [1.0, 1.0], "c": [1, np.nan]})
+    assert frozen_category_errors(query, data, ["x"], [False, True]) == []
 
 
 def test_counterfactuals_table_puts_query_first():

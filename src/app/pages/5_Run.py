@@ -6,8 +6,9 @@ from acfx import AcfxCustom, ACFX
 from utils.features_by_type import get_categorical_indicator, get_all_columns
 from utils.const import ADJACENCY_OPTION_DIRECTLINGAM,ADJACENCY_OPTION_BAYESIAN
 from utils.run_helpers import (acfx_for_classifier, causal_order_to_indices, class_probabilities_text,
-                               counterfactuals_table, fit_explainer, masked_features, numeric_desired_class,
-                               pbounds_from_state, prediction_label, query_template, target_class_list)
+                               counterfactuals_table, fit_explainer,
+                               masked_features, numeric_desired_class,
+                               pbounds_from_state, prediction_label, query_template, query_warnings, target_class_list)
 
 def get_pbounds() -> dict[str,tuple[float,float]]:
     return pbounds_from_state(st.session_state, st.session_state.pbounds.keys())
@@ -144,8 +145,7 @@ else:
     show_sampling_from_model_choice()
 
     categorical_indicator = get_categorical_indicator()
-    all_columns = get_all_columns()
-    df_init = query_template(all_columns, categorical_indicator)
+    df_init = query_template(st.session_state.selected_X, categorical_indicator)
 
     query_instances = st.data_editor(
         data=df_init,
@@ -167,6 +167,9 @@ else:
         elif 'desired_class' not in st.session_state or st.session_state.desired_class is None:
             st.warning("⚠️ Choose desired class first")
         else:
+            for warning in query_warnings(query_instances, st.session_state.selected_X, get_pbounds(),
+                                          categorical_indicator):
+                st.warning(f"⚠️ {warning}")
             acfx = fit_acfx(list(query_instances.columns))
             with st.spinner("Evaluating counterfactuals..."):
                 with warnings.catch_warnings():

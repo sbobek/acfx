@@ -1,10 +1,15 @@
 """Counterfactual generation engine (acfx.evaluation.ccfs): input validation, search space and output contract."""
+from unittest.mock import patch
+
 import numpy as np
 import pytest
 
 from acfx.abstract import ModelBasedCounterOptimizer, OptimizerType
-from acfx.evaluation import generate_cfs, generate_cfs_bayesian, train_bayesian_model
+from acfx.evaluation import (compute_bin_edges, discretize_ndarray, generate_cfs, generate_cfs_bayesian,
+                             train_bayesian_model)
+from acfx.evaluation import ccfs
 from acfx.evaluation.ccfs import _generate_single_cf
+from acfx.evaluation.loss import compute_loss_bayesian
 from acfx.tests.helpers import FAST, IRIS_ADJACENCY, IRIS_CAUSAL_ORDER, assert_within_bounds, other_class
 
 
@@ -96,3 +101,26 @@ def test_bayesian_generation_returns_counterfactuals_within_bounds(lr_model, X_t
 
     assert cfs.shape == (2, len(features_order))
     assert_within_bounds(cfs, pbounds, features_order)
+
+
+def test_bayesian_plausibility_sees_candidates_in_training_data_bins(lr_model, X_train, pbounds, features_order,
+                                                                     query_instance):
+    """Regression: each candidate used to be binned by its own min/max, so every continuous feature landed in bin 0."""
+    categorical = [False] * len(features_order)
+    network = train_bayesian_model(X_train, categorical, bins=3)
+    edges = compute_bin_edges(X_train[features_order].to_numpy(), categorical, bins=3)
+    seen = []
+
+    def recording_loss(model, cfs, cfs_categorized, *args, **kwargs):
+        seen.append((cfs.copy(), cfs_categorized.copy()))
+        return compute_loss_bayesian(model, cfs, cfs_categorized, *args, **kwargs)
+
+    with patch.object(ccfs, "compute_loss_bayesian", recording_loss):
+        generate_cfs_bayesian(query_instance, other_class(lr_model, query_instance), network, 3, 1, 1, 1, 1,
+                              pbounds, lr_model, features_order=features_order, categorical_indicator=categorical,
+                              X=X_train, num_cfs=1, optimizer_type=OptimizerType.LinearAdditive, **FAST)
+
+    assert seen
+    for cf, categorized in seen:
+        np.testing.assert_array_equal(categorized.astype(int), discretize_ndarray(cf, categorical, edges).astype(int))
+    assert len({int(b) for _, categorized in seen for b in categorized[0]}) > 1

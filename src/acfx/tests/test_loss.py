@@ -2,6 +2,7 @@
 
 Expected values are computed by hand on tiny inputs, so each test documents the exact formula.
 """
+import warnings
 from unittest.mock import Mock
 
 import numpy as np
@@ -103,7 +104,8 @@ def test_bayesian_penalty_looks_up_states_by_name(network_with_gapped_states):
 @pytest.mark.parametrize("sample", [[0, 1], [0, 7], [5, 2]])
 def test_bayesian_penalty_is_maximal_for_states_never_observed(network_with_gapped_states, sample):
     """Regression: unseen states used to be read as raw indices (wrong penalty for B=1, IndexError for B=7)."""
-    penalty = compute_causal_penalty_bayesian_adjacency(np.array([sample]), network_with_gapped_states)
+    with pytest.warns(UserWarning, match="never observed"):
+        penalty = compute_causal_penalty_bayesian_adjacency(np.array([sample]), network_with_gapped_states)
     assert penalty == pytest.approx(-np.log(1e-8))
 
 
@@ -204,3 +206,9 @@ def test_bayesian_total_loss_uses_categorised_counterfactual(two_node_network):
                                  plausibility_weight=1, diversity_weight=0, pbounds={"A": (0, 1), "B": (0, 1)},
                                  features_order=["A", "B"], masked_features=None)
     assert loss[0, 1] == pytest.approx(-np.log(0.1) / 2)
+
+
+def test_bayesian_penalty_does_not_warn_for_observed_states(network_with_gapped_states):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        compute_causal_penalty_bayesian_adjacency(np.array([[0, 2]]), network_with_gapped_states)

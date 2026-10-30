@@ -35,9 +35,33 @@ def discretize_dataframe(df: pd.DataFrame, categorical_flags: list[bool], bins: 
     return result_df
 
 
-import numpy as np
+def compute_bin_edges(data: np.ndarray, categorical_flags: list[bool], bins: int = 5) -> list[np.ndarray | None]:
+    """
+    Compute the pandas.cut bin edges of each continuous column, i.e. the bins discretize_dataframe assigns.
 
-def discretize_ndarray(data: np.ndarray, categorical_flags: list[bool], bins: int = 5) -> np.ndarray:
+    Parameters
+    ----------
+    data : np.ndarray
+        Input 2D array of shape (n_samples, n_features), normally the data the Bayesian network was trained on.
+    categorical_flags : list[bool]
+        List indicating whether each column is categorical (True) or continuous (False).
+    bins : int
+        Number of bins for discretization (default = 5).
+
+    Returns
+    -------
+    list[np.ndarray | None]
+        Bin edges (bins + 1 values) for every continuous column, None for every categorical column.
+    """
+    if len(categorical_flags) != data.shape[1]:
+        raise ValueError("Length of categorical_flags must match number of columns in data.")
+
+    return [None if is_cat else pd.cut(data[:, col_idx].astype(float), bins=bins, retbins=True)[1]
+            for col_idx, is_cat in enumerate(categorical_flags)]
+
+
+def discretize_ndarray(data: np.ndarray, categorical_flags: list[bool],
+                       bin_edges: list[np.ndarray | None]) -> np.ndarray:
     """
     Discretize continuous features in a NumPy ndarray based on categorical flags.
 
@@ -47,8 +71,9 @@ def discretize_ndarray(data: np.ndarray, categorical_flags: list[bool], bins: in
         Input 2D array of shape (n_samples, n_features).
     categorical_flags : list[bool]
         List indicating whether each column is categorical (True) or continuous (False).
-    bins : int
-        Number of bins for discretization (default = 5).
+    bin_edges : list[np.ndarray | None]
+        Bin edges from compute_bin_edges, computed on the data the Bayesian network was trained on.
+        Values outside the edges are assigned to the first or the last bin.
 
     Returns
     -------
@@ -62,9 +87,8 @@ def discretize_ndarray(data: np.ndarray, categorical_flags: list[bool], bins: in
 
     for col_idx, is_cat in enumerate(categorical_flags):
         if not is_cat:
-            col = data[:, col_idx]
-            bin_edges = np.linspace(np.min(col), np.max(col), bins + 1)
-            result[:, col_idx] = np.digitize(col, bin_edges[1:-1], right=True)
+            col = data[:, col_idx].astype(float)
+            result[:, col_idx] = np.digitize(col, bin_edges[col_idx][1:-1], right=True)
 
     return result
 

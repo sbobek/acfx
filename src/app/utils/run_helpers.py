@@ -85,15 +85,43 @@ def numeric_desired_class(desired_class, class_names):
     return desired_class
 
 
-def query_template(all_columns, categorical_indicator) -> pd.DataFrame:
-    """A single all-zero query row: int for categorical features, float for continuous ones."""
-    df_init = pd.DataFrame([0] * len(all_columns), index=all_columns).T
-    for (col_index, col_name) in enumerate(all_columns):
+def query_template(X: pd.DataFrame, categorical_indicator) -> pd.DataFrame:
+    """A single query row taken from the data: int for categorical features, float for continuous ones."""
+    complete_rows = X.dropna()
+    df_init = (complete_rows if len(complete_rows) else X.fillna(0)).head(1).reset_index(drop=True)
+    for (col_index, col_name) in enumerate(X.columns):
         if categorical_indicator[col_index]:
             df_init[col_name] = df_init[col_name].astype(int)
         else:
             df_init[col_name] = df_init[col_name].astype(float)
     return df_init
+
+
+def query_warnings(query_instances: pd.DataFrame, X: pd.DataFrame, pbounds, categorical_indicator) -> list[str]:
+    """
+    Query values the data does not contain (categorical) or the search bounds exclude (all features).
+
+    Most important for a frozen categorical feature, i.e. an unmasked one while another feature is masked (with no
+    masked features all of them may change). Its query value is copied to every candidate, so an unknown value
+    is a state the Bayesian network never saw and each CPD with this feature adds the maximum penalty (about 18.4).
+
+    The Run page blocks this case with frozen_category_errors when the Bayesian penalty is on.
+
+    A masked feature does not use its query value in the Bayesian penalty. A continuous value outside the data
+    falls into the first or the last bin, so it gets no maximum penalty, and it is not reported at all if it
+    fits in the widened bounds. A continuous value inside the data range can still land in a bin with no training
+    data, which is an unknown state as well; this is not reported either.
+    """
+    warnings = []
+    for row_number, (_, query_instance) in enumerate(query_instances.iterrows(), start=1):
+        for (col_index, col_name) in enumerate(X.columns):
+            value = query_instance[col_name]
+            low, high = pbounds[col_name]
+            if categorical_indicator[col_index] and value not in set(X[col_name]):
+                warnings.append(f"Query {row_number}: '{col_name}' = {value} does not occur in the data.")
+            elif not low <= value <= high:
+                warnings.append(f"Query {row_number}: '{col_name}' = {value} is outside the bounds [{low}, {high}].")
+    return warnings
 
 
 def counterfactuals_table(query_instance: pd.Series, cfs, columns) -> pd.DataFrame:
