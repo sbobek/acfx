@@ -105,8 +105,6 @@ def query_warnings(query_instances: pd.DataFrame, X: pd.DataFrame, pbounds, cate
     masked features all of them may change). Its query value is copied to every candidate, so an unknown value
     is a state the Bayesian network never saw and each CPD with this feature adds the maximum penalty (about 18.4).
 
-    The Run page blocks this case with frozen_category_errors when the Bayesian penalty is on.
-
     A masked feature does not use its query value in the Bayesian penalty. A continuous value outside the data
     falls into the first or the last bin, so it gets no maximum penalty, and it is not reported at all if it
     fits in the widened bounds. A continuous value inside the data range can still land in a bin with no training
