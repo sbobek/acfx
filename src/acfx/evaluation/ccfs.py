@@ -15,7 +15,7 @@ from ..abstract import OptimizerType
 from .LogisticRegressionCounterOptimizer import LogisticRegressionCounterOptimizer
 from .loss import compute_loss, compute_loss_bayesian
 from .EBMCounterOptimizer import EBMCounterOptimizer
-from .bayesian_model import discretize_ndarray
+from .bayesian_model import discretize_ndarray, compute_bin_edges
 
 def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_order, proximity_weight, sparsity_weight,
                          plausibility_weight,
@@ -73,7 +73,7 @@ def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal
                                 categorical=categorical_indicator,
                                 allcfs=cfst)
         else:
-            categorized = discretize_ndarray(cf, categorical_indicator, bins_num)
+            categorized = discretize_ndarray(cf, categorical_indicator, bin_edges)
             loss = compute_loss_bayesian(model, cf, categorized, query_instance, desired_class, bayesian_model,
                                          proximity_weight, sparsity_weight, plausibility_weight,
                                 diversity_weight, pbounds=bounds, features_order=features_order,
@@ -165,7 +165,7 @@ def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal
     sampled_trials = 0
     if X is not None:
         Xdesired = X[model.predict(X) == desired_class].drop_duplicates()
-        init_points, sample_size, sampled_trials = sample_from_data(X, features_order,
+        init_points, sample_size, sampled_trials = sample_from_data(Xdesired, features_order,
                                                                               init_points,
                                                                               sampled_trials, study)
         if init_points > 0 and sampling_from_model:
@@ -174,6 +174,11 @@ def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal
                                                study)
     else:
         raise ValueError('X is None')
+
+    # candidates must use the bins of the data the network was trained on; ACFX.fit trains it on this X,
+    # a pre-fitted bayesian_model must come from the same X and number of bins (this is not validated)
+    bin_edges = compute_bin_edges(X[features_order].to_numpy(), categorical_indicator, bins_num) \
+        if bayesian_causality else None
 
     # Optimize the study with the defined number of iterations
     study.optimize(black_box_function, n_trials=n_iter + sampled_trials)

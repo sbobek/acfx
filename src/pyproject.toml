@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "acfx"
-version = "0.3.7dev2"
+version = "0.3.8"
 description = "Actionable Counterfactual eXplanations"
 readme = "README.md"
 authors = [
@@ -16,27 +16,33 @@ keywords = ["xai", "tabular data","explainability", "model-agnostic", "counterfa
 
 dependencies = [
     "numpy==1.26.0; python_version < '3.12'",
-    "numpy>=1.26.0,<=2.4.3; python_version >= '3.12'",
+    "numpy>=1.26.0,<3; python_version >= '3.12'",
     "pandas==1.5.3; python_version < '3.12'",
-    "pandas>=1.5.3,<=2.4.3; python_version >= '3.12'",
+    "pandas>=1.5.3,<4; python_version >= '3.12'",
     "scipy==1.11.4; python_version < '3.12'",
-    "scipy>=1.11.4,<1.17; python_version >= '3.12'",
+    "scipy>=1.11.4,<2; python_version >= '3.12'",
     "scikit-learn==1.6.1; python_version < '3.12'",
-    "scikit-learn>=1.6.1,<=1.8.0; python_version >= '3.12'",
+    "scikit-learn>=1.6.1,<2; python_version >= '3.12'",
 
-    "optuna==4.2.0",
+    "optuna==4.2.0; python_version < '3.12'",
+    "optuna>=4.2.0,<6; python_version >= '3.12'",
     "pgmpy==1.0.0",
-    "interpret==0.7.3",
-    "interpret-core==0.7.3",
-    "overrides==7.4.0"
+    "interpret==0.7.3; python_version < '3.12'",
+    "interpret>=0.7.3,<0.8; python_version >= '3.12'",
+    "interpret-core==0.7.3; python_version < '3.12'",
+    "interpret-core>=0.7.3,<0.8; python_version >= '3.12'",
+    "overrides==7.4.0; python_version < '3.12'",
+    "overrides>=7.4.0,<8; python_version >= '3.12'"
 ]
 
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.15"
 
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Operating System :: OS Independent"
 ]
 
@@ -55,11 +61,69 @@ benchmark = [
     "deap==1.4.2; python_version <= '3.11'",
     "pydot==3.0.4; python_version <= '3.11'"
 ]
-streamlit-app = ["streamlit==1.48.0", "streamlit-sortables==0.3.1", "networkx==3.4.2", "lingam==1.9.1"]
+streamlit-app = [
+    "streamlit==1.48.0; python_version < '3.12'",
+    "streamlit>=1.48.0,<2; python_version >= '3.12'",
+    "streamlit-sortables==0.3.1",
+    # numpy is pinned to 1.26 for Python<3.12: pyarrow 25 segfaults with it and pyarrow>=26 requires numpy>=2
+    "pyarrow<25; python_version < '3.12'",
+    "networkx==3.4.2; python_version < '3.12'",
+    "networkx>=3.4.2,<4; python_version >= '3.12'",
+    "lingam==1.9.1; python_version < '3.12'",
+    # lingam>=1.13 pins scipy<=1.13.1, which has no wheels for Python>=3.13
+    "lingam>=1.9.1,<1.13; python_version >= '3.12'",
+    # semopy<2 needs portmin, which is sdist-only and fails to build on Python>=3.14
+    "semopy>=2.3; python_version >= '3.12'",
+    "pyvis==0.3.2"
+]
+test = [
+    "pytest>=8",
+    "pytest-cov>=5",
+    "networkx==3.4.2; python_version < '3.12'",
+    "networkx>=3.4.2,<4; python_version >= '3.12'",
+    "lingam==1.9.1; python_version < '3.12'",
+    "lingam>=1.9.1,<1.13; python_version >= '3.12'"
+]
 
 [tool.setuptools.packages.find]
 include = ["acfx*"]
-exclude = ["acfx.benchmark*", "acfx.tests"]
+exclude = ["acfx.benchmark*", "acfx.tests*"]
+
+[tool.pytest.ini_options]
+# Run from the src/ directory: `pytest`
+testpaths = ["acfx/tests", "app/tests"]
+pythonpath = [".", "app"]
+addopts = "--import-mode=importlib"
+markers = [
+    "slow: end-to-end tests running the full counterfactual optimisation (deselect with -m 'not slow')"
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::FutureWarning"
+]
+
+[tool.coverage.run]
+source = ["acfx", "app"]
+branch = true
+omit = [
+    "acfx/benchmark/*",
+    "*/tests/*",
+    "acfx/evaluation/utils.py",
+    "acfx/evaluation/multi_dataset_evaluation.py",
+    "app/Welcome to the ACFX.py"
+]
+
+[tool.coverage.report]
+show_missing = true
+# regression gate: the full suite (including slow tests)
+fail_under = 90
+exclude_also = [
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError"
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
 
 [project.urls]
 Homepage = "https://github.com/sbobek/acfx"

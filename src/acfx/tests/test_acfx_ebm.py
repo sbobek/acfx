@@ -1,25 +1,12 @@
-import lingam
-import pytest
+"""End-to-end behaviour of AcfxEBM (Explainable Boosting Machine blackbox)."""
 import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.datasets import load_iris
+import pytest
 from interpret.glassbox import ExplainableBoostingClassifier
 
-from src.acfx.AcfxEBM import AcfxEBM
-from src.acfx.evaluation.loss import compute_causal_penalty
+from acfx import AcfxEBM
+from acfx.evaluation.loss import compute_causal_penalty
+from acfx.tests.helpers import FAST, IRIS_ADJACENCY, IRIS_CAUSAL_ORDER, SEED, assert_within_bounds, other_class
 
-
-@pytest.fixture
-def sample_data():
-    data = load_iris(as_frame=True)
-    X = data.data
-    y = data.target
-    return train_test_split(X, y, test_size=0.2, random_state=42)
-
-def train_causal_model(X):
-    causal_model = lingam.DirectLiNGAM()
-    causal_model.fit(X)
-    return causal_model
 
 def test_init_sets_attributes():
     model = ExplainableBoostingClassifier()
@@ -27,158 +14,56 @@ def test_init_sets_attributes():
     assert explainer.blackbox == model
     assert explainer.optimizer is None
 
-def test_fit_sets_internal_state(sample_data):
-    X_train, X_test, y_train, y_test = sample_data
-    model = ExplainableBoostingClassifier()
-    explainer = AcfxEBM(model)
-    query_instance = X_test.iloc[0]
-    adjacency_matrix = np.array([
-        [0.0, 0.0, 0.0, 0.0],
-        [0.8, 0.0, 0.0, 0.0],
-        [0.0, 0.6, 0.0, 0.0],
-        [0.5, 0.0, 0.7, 0.0]
-    ])
-    causal_order = None
-    pbounds = {col: (X_train[col].min(), X_train[col].max()) for col in X_train.columns}
 
-    explainer.fit(X_train, pbounds, causal_order,adjacency_matrix , y_train)
+def test_fit_with_targets_trains_ebm_and_sets_internal_state(X_train, y_train, X_test, pbounds):
+    explainer = AcfxEBM(ExplainableBoostingClassifier(interactions=0, outer_bags=2, random_state=SEED))
+    explainer.fit(X_train, pbounds, None, IRIS_ADJACENCY, y_train)
 
     assert explainer.X.equals(X_train)
     assert explainer.pbounds == pbounds
+    assert len(explainer.predict(X_test)) == len(X_test)
 
-def test_predict_returns_predictions(sample_data):
-    X_train, X_test, y_train, y_test = sample_data
-    model = ExplainableBoostingClassifier()
-    model.fit(X_train, y_train)
-    explainer = AcfxEBM(model)
-    preds = explainer.predict(X_test)
-    assert len(preds) == len(X_test)
 
-def test_raises_error_plausability_weight_on_missing_args(sample_data):
-    X_train, X_test, y_train, y_test = sample_data
-    causal_model = train_causal_model(X_train)
-    causal_order = causal_model.causal_order_
-    model = ExplainableBoostingClassifier()
-    model.fit(X_train, y_train)
-    explainer = AcfxEBM(model)
-    query_instance = X_test.iloc[0].values
-    pbounds = {col: (X_train[col].min(), X_train[col].max()) for col in X_train.columns}
-    adjacency_matrix = np.array([
-        [0.0, 0.0, 0.0, 0.0],
-        [0.8, 0.0, 0.0, 0.0],
-        [0.0, 0.6, 0.0, 0.0],
-        [0.5, 0.0, 0.7, 0.0]
-    ])
+@pytest.mark.parametrize("causal_order, adjacency", [
+    (IRIS_CAUSAL_ORDER, None), (None, IRIS_ADJACENCY), (None, None), ([1, 2, 3], IRIS_ADJACENCY)])
+def test_plausibility_on_requires_complete_causal_graph(ebm_model, X_train, pbounds, query_instance,
+                                                        causal_order, adjacency):
+    explainer = AcfxEBM(ebm_model).fit(X_train, pbounds, causal_order, adjacency)
     with pytest.raises(ValueError):
-        explainer.fit(X_train, pbounds, causal_order, None, y_train)
-        explainer.counterfactual(desired_class=1, plausibility_weight=0.5, query_instance=query_instance)
-    with pytest.raises(ValueError):
-        explainer.fit(X_train,pbounds , None, adjacency_matrix, y_train)
-        explainer.counterfactual(desired_class=1, plausibility_weight=0.5, query_instance=query_instance)
-    with pytest.raises(ValueError):
-        explainer.fit(X_train, pbounds, None,None , y_train)
-        explainer.counterfactual(desired_class=1, plausibility_weight=0.5, query_instance=query_instance)
-    with pytest.raises(ValueError):
-        explainer.fit(X_train,pbounds , [1,2,3],adjacency_matrix , y_train)
-        explainer.counterfactual(desired_class=1, plausibility_weight=0.5, query_instance=query_instance)
+        explainer.counterfactual(desired_class=1, plausibility_weight=0.5, query_instance=query_instance, **FAST)
 
 
-def test_works_fine_plausability_weight_off_missing_args(sample_data):
-    X_train, X_test, y_train, y_test = sample_data
-    causal_model = train_causal_model(X_train)
-    causal_order = causal_model.causal_order_
-    model = ExplainableBoostingClassifier()
-    model.fit(X_train, y_train)
-    explainer = AcfxEBM(model)
-    query_instance = X_test.iloc[0].values
-    pbounds = {col: (X_train[col].min(), X_train[col].max()) for col in X_train.columns}
-    adjacency_matrix = np.array([
-        [0.0, 0.0, 0.0, 0.0],
-        [0.8, 0.0, 0.0, 0.0],
-        [0.0, 0.6, 0.0, 0.0],
-        [0.5, 0.0, 0.7, 0.0]
-    ])
-    explainer.fit(X_train, pbounds, causal_order, None, y_train)
-    explainer.counterfactual(desired_class=1, plausibility_weight=0, query_instance=query_instance)
-
-    explainer.fit(X_train,pbounds , None, adjacency_matrix, y_train)
-    explainer.counterfactual(desired_class=1, plausibility_weight=0, query_instance=query_instance)
-
-    explainer.fit(X_train, pbounds, None,None , y_train)
-    explainer.counterfactual(desired_class=1, plausibility_weight=0, query_instance=query_instance)
-
-    explainer.fit(X_train, pbounds, [1,2,3],adjacency_matrix , y_train)
-    explainer.counterfactual(desired_class=1, plausibility_weight=0, query_instance=query_instance)
-
-def test_plausibility_with_causal_order(sample_data):
-    X_train, X_test, y_train, y_test = sample_data
-    causal_model = train_causal_model(X_train)
-    causal_order = causal_model.causal_order_
-    model = ExplainableBoostingClassifier()
-    model.fit(X_train, y_train)
-    explainer = AcfxEBM(model)
-    query_instance = X_test.iloc[0].values
-    pbounds = {col: (X_train[col].min(), X_train[col].max()) for col in X_train.columns}
-    adjacency_matrix = np.array([
-        [0.0, 0.0, 0.0, 0.0],
-        [0.8, 0.0, 0.0, 0.0],
-        [0.0, 0.6, 0.0, 0.0],
-        [0.5, 0.0, 0.7, 0.0]
-    ])
-    explainer.fit(X_train, pbounds, causal_order, adjacency_matrix, y_train)
-    result = explainer.counterfactual(desired_class=1, plausibility_weight=0.5, query_instance=query_instance)
-    assert isinstance(result, np.ndarray)
-    assert result.shape == (1, 4)
-
-def test_counterfactual_calls_generate_cfs_returns_result(sample_data):
-    X_train, X_test, y_train, y_test = sample_data
-    model = ExplainableBoostingClassifier()
-    model.fit(X_train, y_train)
-    explainer = AcfxEBM(model)
-    query_instance = X_test.iloc[0].values
-    pbounds = {col: (X_train[col].min(), X_train[col].max()) for col in X_train.columns}
-    adjacency_matrix = np.array([
-        [0.0, 0.0, 0.0, 0.0],
-        [0.8, 0.0, 0.0, 0.0],
-        [0.0, 0.6, 0.0, 0.0],
-        [0.5, 0.0, 0.7, 0.0]
-    ])
-    explainer.fit(X_train, pbounds, None, adjacency_matrix, y_train)
-
-    result = explainer.counterfactual(desired_class=1, query_instance=query_instance)
-
-    assert isinstance(result, np.ndarray)
+@pytest.mark.parametrize("causal_order, adjacency", [
+    (IRIS_CAUSAL_ORDER, None), (None, IRIS_ADJACENCY), (None, None), ([1, 2, 3], IRIS_ADJACENCY)])
+def test_plausibility_off_does_not_need_causal_graph(ebm_model, X_train, pbounds, query_instance,
+                                                     causal_order, adjacency):
+    explainer = AcfxEBM(ebm_model).fit(X_train, pbounds, causal_order, adjacency)
+    result = explainer.counterfactual(desired_class=1, plausibility_weight=0, query_instance=query_instance, **FAST)
     assert result.shape == (1, 4)
 
 
-def test_counterfactual_has_lower_causal_penalty(sample_data):
+def test_plausibility_with_causal_graph_returns_counterfactual_within_bounds(ebm_model, X_train, pbounds,
+                                                                            features_order, query_instance):
+    explainer = AcfxEBM(ebm_model).fit(X_train, pbounds, IRIS_CAUSAL_ORDER, IRIS_ADJACENCY,
+                                       features_order=features_order)
+    result = explainer.counterfactual(desired_class=other_class(ebm_model, query_instance),
+                                      plausibility_weight=0.5, query_instance=query_instance, **FAST)
+    assert isinstance(result, np.ndarray)
+    assert result.shape == (1, 4)
+    assert_within_bounds(result, pbounds, features_order)
 
-    X_train, X_test, y_train, y_test = sample_data
-    model = ExplainableBoostingClassifier()
-    model.fit(X_train, y_train)
-    explainer = AcfxEBM(model)
 
-    query_instance = X_test.iloc[0].values
-    original_class = model.predict([query_instance])[0]
+@pytest.mark.slow
+def test_counterfactual_flips_prediction_and_is_more_plausible_than_query(ebm_model, X_train, pbounds,
+                                                                         features_order, query_instance):
+    desired_class = other_class(ebm_model, query_instance)
+    explainer = AcfxEBM(ebm_model).fit(X=X_train, adjacency_matrix=IRIS_ADJACENCY,
+                                       causal_order=IRIS_CAUSAL_ORDER, pbounds=pbounds,
+                                       features_order=features_order)
 
-    pbounds = {col: (X_train[col].min(), X_train[col].max()) for col in X_train.columns}
-    features_order = X_train.columns.tolist()
-    adjacency_matrix = np.array([
-        [0.0, 0.0, 0.0, 0.0],
-        [0.8, 0.0, 0.0, 0.0],
-        [0.0, 0.6, 0.0, 0.0],
-        [0.5, 0.0, 0.7, 0.0]
-    ])
+    cf = explainer.counterfactual(desired_class=desired_class, query_instance=query_instance,
+                                  plausibility_weight=1, init_points=10, n_iter=200)
 
-    causal_order = list(range(len(features_order)))
-
-    explainer.fit(X=X_train, adjacency_matrix=adjacency_matrix, causal_order=causal_order, pbounds=pbounds,
-                  features_order=features_order)
-
-    cf = explainer.counterfactual(desired_class=original_class, query_instance=query_instance)
-
-    original_causal_penalty = compute_causal_penalty(np.array([query_instance]), adjacency_matrix, causal_order)
-    cfs_causal_penalty = compute_causal_penalty(cf, adjacency_matrix, causal_order)
-
-    print(f"Original penalty: {original_causal_penalty}, CF penalty: {cfs_causal_penalty}")
-    assert cfs_causal_penalty <= original_causal_penalty
+    assert explainer.predict(cf)[0] == desired_class
+    original_penalty = compute_causal_penalty(np.array([query_instance]), IRIS_ADJACENCY, IRIS_CAUSAL_ORDER)
+    assert compute_causal_penalty(cf, IRIS_ADJACENCY, IRIS_CAUSAL_ORDER) <= original_penalty
