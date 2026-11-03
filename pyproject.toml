@@ -86,13 +86,14 @@ test = [
 ]
 
 [tool.setuptools.packages.find]
+where = ["src"]
 include = ["acfx*"]
 exclude = ["acfx.benchmark*", "acfx.tests*"]
 
 [tool.pytest.ini_options]
 # Run from the src/ directory: `pytest`
-testpaths = ["acfx/tests", "app/tests"]
-pythonpath = [".", "app"]
+testpaths = ["src/acfx/tests", "src/app/tests"]
+pythonpath = ["src", "src/app"]
 addopts = "--import-mode=importlib"
 markers = [
     "slow: end-to-end tests running the full counterfactual optimisation (deselect with -m 'not slow')"
