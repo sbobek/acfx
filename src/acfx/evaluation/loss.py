@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 from pgmpy.models import DiscreteBayesianNetwork
 from scipy.spatial.distance import pdist, squareform
@@ -29,11 +31,18 @@ def compute_causal_penalty_bayesian_adjacency(samples, model : DiscreteBayesianN
                 continue
 
             # Get parent values for this sample
-            parent_values = [int(sample[nodes.index(p)]) for p in parents]
-            node_value = sample[nodes.index(node)]
+            node_value = int(np.round(sample[nodes.index(node)]))
+            parent_values = [int(np.round(sample[nodes.index(p)])) for p in parents]
 
             # Find probability from CPD
-            prob = cpd.get_value(**{node: int(node_value), **dict(zip(parents, parent_values))})
+            assignment = {node: node_value, **dict(zip(parents, parent_values))}
+            if any(value not in cpd.state_names[var] for var, value in assignment.items()):
+                # state never observed in the data: pgmpy would read it as a raw index, treat it as implausible
+                warnings.warn(f"Bayesian plausibility: {assignment} contains a state never observed in the data "
+                              f"of node '{node}', using the maximum penalty.")
+                prob = 1e-8
+            else:
+                prob = cpd.get_value(**assignment)
             if np.abs(prob) < 1e-8:
                 prob = 1e-8
             sample_penalty += -np.log(prob)

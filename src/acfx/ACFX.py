@@ -84,6 +84,8 @@ class ACFX(ABC, BaseEstimator, TransformerMixin):
 
         bayesian_model:
             optionally, provide pre-fitted discrete bayesian model, if bayesian_causality is True.
+            It must be trained on the same X with the same num_bins, because counterfactual candidates are discretized
+            with the bins of X (this is not validated).
             If it is not provided and bayesian_causality is True, then it will be initialized internally and
             fitted with the num_bins param
 
