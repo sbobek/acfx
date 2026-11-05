@@ -91,8 +91,12 @@ explainer.fit(
 # Generate counterfactual
 query_instance = X_test.iloc[0].values
 original_class = model.predict([query_instance])[0]
-cf = explainer.counterfactual(desired_class=original_class, query_instance=query_instance)
-print(cf)
+desired_class = next(cls for cls in model.classes_ if cls != original_class)
+  counterfactuals = explainer.counterfactual(desired_class=desired_class, query_instance=query_instance)
+
+# Step 9: Inspect the results
+print(f"Original instance: {query_instance}")
+print(f"\nGenerated counterfactuals: {counterfactuals}")
 ```
 
 > ⚠️ The adjacency matrix above is a simple example. In practice, it can be provided by expert knowledge or learned using tools like DirectLiNGAM.
