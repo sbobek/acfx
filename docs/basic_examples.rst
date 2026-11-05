@@ -106,7 +106,7 @@ To generate counterfactual explanations for a given instance:
 .. code-block:: python
 
     query_instance = X_test.iloc[0].values
-    original_class = model.predict([query_instance])[0]
+    original_class = 1 - model.predict([query_instance])[0]
 
     cf = explainer.counterfactual(desired_class=original_class, query_instance=query_instance)
     print(cf)
