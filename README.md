@@ -43,7 +43,7 @@ pip install acfx
 
 ```bash
 git clone https://github.com/sbobek/acfx
-cd acfx/src
+cd acfx
 pip install .
 ```
 
@@ -119,7 +119,7 @@ The library and the Streamlit GUI are covered by an automated pytest suite with 
 
 ```bash
 git clone https://github.com/sbobek/acfx
-cd acfx/src
+cd acfx
 pip install -e ".[test,streamlit-app]"
 pytest --cov
 ```
