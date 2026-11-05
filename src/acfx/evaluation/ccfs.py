@@ -24,7 +24,7 @@ def __generate_single_cf(query_instance, desired_class, adjacency_matrix, causal
                          init_points=5, n_iter=1000, bayesian_causality : bool = False, bins_num: Optional[int] = None,
                          bayesian_model: Optional[DiscreteBayesianNetwork] = None):
     """
-    Generate a single counterfactual that minimizes the loss function using Optuna.
+       Generate a single counterfactual that minimizes the loss function using Optuna.
     """
     optuna.logging.set_verbosity(optuna.logging.WARNING)
 
@@ -198,6 +198,33 @@ def _generate_single_cf(query_instance, desired_class, adjacency_matrix, causal_
                         masked_features=None, cfs=[], X=None, init_points=5, n_iter=1000,
                         optimizer_type: OptimizerType = OptimizerType.EBM, optimizer=None, sampling_from_model=True,
                         bayesian_causality : bool = False, bins_num: Optional[int] = None, bayesian_model: Optional[DiscreteBayesianNetwork] = None):
+    """
+       Normalize counterfactual-generation inputs and generate one counterfactual.
+
+       This private wrapper supplies defaults for feature metadata, selects the
+       appropriate model-based optimizer, validates the Bayesian causal-loss
+       configuration, and delegates the optimization to
+       ``__generate_single_cf``.
+
+       If ``categorical_indicator`` is ``None`` or empty, every feature is
+       treated as non-categorical. If ``features_order`` is ``None`` or empty,
+       feature order is taken from ``bounds``. If ``masked_features`` is
+       ``None`` or empty, all features may be modified.
+
+       In Bayesian causal-loss mode, both ``bayesian_model`` and ``bins_num``
+       must be provided.
+
+       Raises
+       ------
+       ValueError
+           If Bayesian causal-loss mode is enabled without ``bayesian_model``.
+
+       ValueError
+           If Bayesian causal-loss mode is enabled without ``bins_num``.
+
+       NotImplementedError
+           If the requested optimizer type is not supported.
+       """
 
     def is_null_or_empty(var):
         if var is None:
@@ -252,54 +279,226 @@ def generate_cfs_bayesian(query_instance:np.ndarray, desired_class:int, bayesian
                  num_cfs:int=1, init_points:int=10, n_iter:int=1000, sampling_from_model:bool=False,
                  optimizer_type : OptimizerType = OptimizerType.EBM, optimizer : ModelBasedCounterOptimizer=None)-> np.ndarray:
     """
-    Generate multiple counterfactuals that minimize the loss function using Bayesian Optimization and bayesian network to calculate causal loss.
+    Generate counterfactuals using a Bayesian-network-based causal loss.
 
-    Parameters:
-        query_instance:
-            The instance to generate counterfactuals for.
-        desired_class:
-            The target class for the counterfactuals.
-        bayesian_model:
-            Fitted bayesian network
-        categorical_bins_num:
-            Number of bins that were used to discretize continuous features.
-        proximity_weight:
-            Weight for proximity loss component
-        sparsity_weight:
-            Weight for sparsity loss component
-        plausibility_weight:
-            Weight for plausibility loss component
-        diversity_weight:
-            Weight for diversity loss component
-        bounds:
-            The bounds for each feature to search over (dict with feature names as keys and tuple (min, max) as values).
-        model:
-            The predictive model used to predict class labels.
-        features_order:
-            order of features in query instance
-        masked_features:
-            List of interchangeable features
-        categorical_indicator:
-            True at the index where the variable should be treated as categorical
-        num_cfs:
-            The number of counterfactual instances to generate.
-        init_points:
-            Number of initial points for Bayesian Optimization.
-        n_iter:
-            Number of iterations for Bayesian Optimization.
-        X:
-            training dataset to sample from.
-        sampling_from_model:
-            true if you want to generate samples from model after sampling from data
-        optimizer_type:
-            type of optimizer used on model to generate counterfactuals. If you use OptimizerType.Custom, you need to provide optimizer instance
-        optimizer:
-            instance of optimizer (use for optimizer_type = OptimizerType.Custom)
+    This function generates ``num_cfs`` counterfactual instances by repeatedly
+    optimizing a weighted loss function. A separate Optuna study is created
+    for each counterfactual.
+
+    Candidate instances are evaluated using the supplied predictive model and
+    the Bayesian causal-loss calculation implemented by
+    ``compute_loss_bayesian``. Continuous values are discretized using bin
+    edges calculated from ``X`` before the Bayesian causal loss is evaluated.
+
+    Counterfactuals generated earlier in the same call are passed to later
+    optimization runs. This allows the diversity component of the loss to
+    account for previously generated counterfactuals.
+
+    Parameters
+    ----------
+    query_instance : numpy.ndarray
+        Instance for which counterfactual explanations are generated. The
+        optimization procedure supports an instance represented as a
+        one-dimensional array or as an array with shape ``(1, n_features)``.
+
+        Features not included in ``masked_features`` are restored to their
+        values from this instance before a candidate is evaluated and before
+        the final counterfactual is returned.
+
+    desired_class : int
+        Target class for the generated counterfactuals. The value is passed
+        to the predictive model and loss calculation. It is also used to
+        select rows from ``X`` for initial sampling.
+
+    bayesian_model : DiscreteBayesianNetwork
+        Fitted discrete Bayesian network used by the Bayesian causal-loss
+        calculation.
+
+        The model must correspond to the same reference data and the same
+        number of discretization bins used during counterfactual generation.
+        This compatibility is required by the implementation but is not
+        validated by this function.
+
+    categorical_bins_num : int
+        Number of bins used to discretize continuous features for the
+        Bayesian causal-loss calculation. Bin edges are computed from
+        ``X[features_order]`` using this value.
+
+    proximity_weight : float
+        Weight of the proximity component passed to
+        ``compute_loss_bayesian``.
+
+    sparsity_weight : float
+        Weight of the sparsity component passed to
+        ``compute_loss_bayesian``.
+
+    plausibility_weight : float
+        Weight of the Bayesian-network-based plausibility component passed to
+        ``compute_loss_bayesian``.
+
+    diversity_weight : float
+        Weight of the diversity component passed to
+        ``compute_loss_bayesian``. Previously generated counterfactuals are
+        supplied to the loss calculation when available.
+
+    bounds : dict[str, tuple[float, float]]
+        Search bounds for individual features. Each key is a feature name and
+        each value is a ``(minimum, maximum)`` tuple.
+
+        For categorical features, the bounds are converted to integers and
+        used to construct an inclusive sequence of categories. For other
+        features, Optuna samples floating-point values between the supplied
+        lower and upper bounds.
+
+        Values obtained from model-based initial sampling are clipped to
+        these bounds before being added to the Optuna study.
+
+    model : ClassifierMixin
+        Predictive classifier used to evaluate counterfactual candidates.
+
+        The implementation calls ``model.predict(X)`` to identify reference
+        samples assigned to ``desired_class``. Additional model operations
+        may be performed by ``compute_loss_bayesian`` and by the selected
+        initial-sampling optimizer.
+
+    features_order : list[str] or None
+        Feature order used to align the query instance, bounds, categorical
+        indicators, candidate arrays, and columns of ``X``.
+
+        If ``None`` or empty, the function uses ``list(bounds.keys())``.
+
+    masked_features : list[str] or None
+        Names of features that may be changed during optimization.
+
+        Features not included in this list are fixed to their corresponding
+        values from ``query_instance``. If ``None`` or empty, all features in
+        ``features_order`` may be changed.
+
+    categorical_indicator : list[bool] or None
+        Boolean indicators specifying which features are categorical. The
+        order must correspond to ``features_order``.
+
+        For a categorical feature, Optuna selects an integer category in the
+        inclusive range defined by the corresponding bounds. The resulting
+        value is rounded and converted to ``int`` when constructing a
+        candidate array.
+
+        If ``None`` or empty, all features are treated as non-categorical.
+
+    X : pandas.DataFrame of shape (n_samples, n_features) or None
+        Reference dataset used for initial candidate sampling and for
+        calculating discretization bin edges.
+
+        Rows predicted by ``model`` as ``desired_class`` are selected and
+        duplicate rows are removed before data-based initial sampling.
+
+        This argument is required by the implementation. A ``ValueError`` is
+        raised if it is ``None``.
+
+    num_cfs : int
+        Number of counterfactual instances to generate. The default is 1.
+
+        Counterfactuals are generated sequentially. Each generated
+        counterfactual is added to the collection supplied to the next
+        optimization run.
+
+    init_points : int
+        Requested number of initial candidate points used to seed each Optuna
+        study. The default is 10.
+
+        Up to ``int(init_points * 0.5)`` rows are sampled from reference
+        observations predicted as ``desired_class``. The actual number is
+        limited by the number of available target-class rows.
+
+        If initial points remain and ``sampling_from_model`` is True,
+        additional candidates are requested from the optimizer.
+
+    n_iter : int
+        Number of optimization trials requested after initial candidates have
+        been enqueued. The study is executed with
+        ``n_trials=n_iter + sampled_trials``.
+
+        The default is 1000.
+
+    sampling_from_model : bool
+        Whether to request additional initial candidates from the selected
+        model-based optimizer after sampling candidates from ``X``.
+
+        Model-based sampling is performed only when fewer than
+        ``init_points`` candidates were obtained from the reference data.
+
+    optimizer_type : OptimizerType
+        Optimizer type used to construct or select the model-based optimizer
+        for initial candidate generation.
+
+        The implementation handles:
+
+        * ``OptimizerType.EBM``, which creates an ``EBMCounterOptimizer``;
+        * ``OptimizerType.LinearAdditive``, which creates a
+          ``LogisticRegressionCounterOptimizer``;
+        * ``OptimizerType.Custom``, which uses the supplied ``optimizer``.
+
+        Other optimizer types cause a ``NotImplementedError``.
+
+    optimizer : ModelBasedCounterOptimizer or None
+        Custom model-based optimizer used when ``optimizer_type`` is
+        ``OptimizerType.Custom``.
+
+        Its ``optimize_proba`` method is called with ``desired_class`` and a
+        randomly selected non-empty subset of ``masked_features`` when
+        model-based initial sampling is enabled.
 
     Returns
     -------
-    np.ndarray:
-        The generated counterfactuals that minimize the loss function.
+    numpy.ndarray of shape (num_cfs, n_features)
+        Generated counterfactual instances. Individual counterfactual arrays
+        are vertically stacked before being returned.
+
+    Raises
+    ------
+    ValueError
+        If ``bayesian_model`` is ``None``.
+
+    ValueError
+        If ``categorical_bins_num`` is ``None``.
+
+    ValueError
+        If ``X`` is ``None``.
+
+    ValueError
+        If a model-based optimizer returns a candidate in a format other than
+        ``dict``, ``numpy.ndarray``, or ``list``.
+
+    NotImplementedError
+        If ``optimizer_type`` is not one of the optimizer types handled by
+        the implementation.
+
+    Notes
+    -----
+    Each counterfactual is generated using a newly created in-memory Optuna
+    study with the direction set to ``"maximize"``.
+
+    Initial candidates are sampled from rows in ``X`` for which
+    ``model.predict(X) == desired_class``. Duplicate rows are removed before
+    sampling. Data-based sampling uses ``pandas.DataFrame.sample`` without an
+    explicit ``random_state``.
+
+    When model-based sampling is enabled, the implementation randomly selects
+    non-empty subsets of ``masked_features`` and avoids requesting the same
+    feature subset more than once during one counterfactual-generation run.
+
+    Candidate points are tracked to avoid enqueuing exact duplicates. A point
+    is accepted only when it contains every feature required by
+    ``features_order`` and all checked values lie within the corresponding
+    bounds.
+
+    No random seed is configured for Python's ``random`` module, pandas
+    sampling, NumPy, or Optuna. Results may therefore vary between calls
+    unless randomness is controlled externally.
+
+    The function does not independently verify that every returned instance
+    is classified as ``desired_class``. Candidate quality is determined by
+    the loss function and the best Optuna trial.
     """
     cfs = []
     for _ in range(num_cfs):
@@ -321,54 +520,193 @@ def generate_cfs(query_instance:np.ndarray, desired_class:int, adjacency_matrix:
                  num_cfs:int=1, init_points:int=10, n_iter:int=1000, sampling_from_model:bool=False,
                  optimizer_type : OptimizerType = OptimizerType.EBM, optimizer : ModelBasedCounterOptimizer=None) -> np.ndarray:
     """
-    Generate multiple counterfactuals that minimize the loss function using Bayesian Optimization.
+    Generate counterfactuals using an adjacency-based causal representation.
 
-    Parameters:
-        query_instance:
-            The instance to generate counterfactuals for.
-        desired_class:
-            The target class for the counterfactuals.
-        adjacency_matrix:
-            The adjacency matrix representing the causal structure.
-        causal_order:
-            The order of variables in the causal graph.
-        proximity_weight:
-            Weight for proximity loss component
-        sparsity_weight:
-            Weight for sparsity loss component
-        plausibility_weight:
-            Weight for plausibility loss component
-        diversity_weight:
-            Weight for diversity loss component
-        bounds:
-            The bounds for each feature to search over (dict with feature names as keys and tuple (min, max) as values).
-        model:
-            The predictive model used to predict class labels.
-        features_order:
-            order of features in query instance
-        masked_features:
-            List of interchangeable features
-        categorical_indicator:
-            True at the index where the variable should be treated as categorical
-        num_cfs:
-            The number of counterfactual instances to generate.
-        init_points:
-            Number of initial points for Bayesian Optimization.
-        n_iter:
-            Number of iterations for Bayesian Optimization.
-        X:
-            training dataset to sample from.
-        sampling_from_model:
-            true if you want to generate samples from model after sampling from data
-        optimizer_type:
-            type of optimizer used on model to generate counterfactuals. If you use OptimizerType.Custom, you need to provide optimizer instance
-        optimizer:
-            instance of optimizer (use for optimizer_type = OptimizerType.Custom)
+    This function generates ``num_cfs`` counterfactual instances by repeatedly
+    optimizing a weighted loss function. A separate Optuna study is created
+    for each counterfactual.
+
+    Candidate instances are evaluated by ``compute_loss`` using the supplied
+    predictive model, query instance, feature metadata, causal order, and
+    adjacency matrix.
+
+    Counterfactuals generated earlier in the same call are passed to later
+    optimization runs. This allows the diversity component of the loss to
+    account for the counterfactuals already generated.
+
+    Parameters
+    ----------
+    query_instance : numpy.ndarray
+        Instance for which counterfactual explanations are generated. The
+        implementation supports an instance represented as a one-dimensional
+        array or an array with shape ``(1, n_features)``.
+
+        Features not included in ``masked_features`` are restored to their
+        values from this instance before candidate evaluation and before the
+        final counterfactual is returned.
+
+    desired_class : int
+        Target class for the generated counterfactuals. It is passed to the
+        loss calculation and used to select initial samples from ``X``.
+
+    adjacency_matrix : numpy.ndarray
+        Adjacency matrix passed to ``compute_loss`` as the representation of
+        the causal structure.
+
+        Structural validation of this matrix is performed by
+        ``ACFX.counterfactual`` when plausibility loss is enabled and this
+        public function is called through the ``ACFX`` API. This function
+        itself does not validate the matrix dimensions.
+
+    causal_order : Sequence[int]
+        Order of variables in the causal graph. It is passed to
+        ``compute_loss`` together with ``adjacency_matrix``.
+
+    proximity_weight : float
+        Weight of the proximity component passed to ``compute_loss``.
+
+    sparsity_weight : float
+        Weight of the sparsity component passed to ``compute_loss``.
+
+    plausibility_weight : float
+        Weight of the plausibility component passed to ``compute_loss``.
+
+    diversity_weight : float
+        Weight of the diversity component passed to ``compute_loss``.
+        Previously generated counterfactuals are supplied to the loss
+        calculation when available.
+
+    bounds : dict[str, tuple[float, float]]
+        Search bounds for individual features. Each key is a feature name and
+        each value is a ``(minimum, maximum)`` tuple.
+
+        Categorical bounds are converted to integers and used to construct an
+        inclusive sequence of category values. Non-categorical values are
+        sampled as floating-point values within their bounds.
+
+        Model-generated initial candidates are clipped to these bounds before
+        being added to the Optuna study.
+
+    model : ClassifierMixin
+        Predictive classifier used to evaluate counterfactual candidates.
+
+        The implementation calls ``model.predict(X)`` to select reference
+        observations assigned to ``desired_class``. Further model operations
+        are performed by ``compute_loss`` and may also be performed by the
+        selected initial-sampling optimizer.
+
+    features_order : list[str] or None
+        Feature order used to align the query instance, bounds, feature
+        metadata, candidate arrays, and columns of ``X``.
+
+        If ``None`` or empty, ``list(bounds.keys())`` is used.
+
+    masked_features : list[str] or None
+        Names of features that may be changed during optimization.
+
+        Features omitted from this list are fixed to their corresponding
+        values in ``query_instance``. If ``None`` or empty, all features in
+        ``features_order`` may be changed.
+
+    categorical_indicator : list[bool] or None
+        Boolean indicators specifying which features should be treated as
+        categorical. Their order must correspond to ``features_order``.
+
+        Categorical candidate values are selected from the inclusive integer
+        range given by the corresponding feature bounds. They are rounded and
+        converted to ``int`` when the candidate array is constructed.
+
+        If ``None`` or empty, all features are treated as non-categorical.
+
+    X : pandas.DataFrame of shape (n_samples, n_features) or None
+        Reference dataset used for initial candidate sampling.
+
+        The implementation selects rows for which
+        ``model.predict(X) == desired_class`` and removes duplicates before
+        sampling initial points.
+
+        This argument is required by the implementation. A ``ValueError`` is
+        raised if it is ``None``.
+
+    num_cfs : int
+        Number of counterfactual instances to generate. The default is 1.
+
+        Counterfactuals are generated sequentially and passed to subsequent
+        runs through the diversity-loss input.
+
+    init_points : int
+        Requested number of initial points used to seed each Optuna study.
+        The default is 10.
+
+        Up to ``int(init_points * 0.5)`` target-class observations are sampled
+        from ``X``. The number is limited by the amount of available data.
+
+        If fewer points are obtained and ``sampling_from_model`` is True,
+        model-based candidates are requested from the selected optimizer.
+
+    n_iter : int
+        Number of optimization trials requested in addition to the number of
+        successfully enqueued initial candidates. The default is 1000.
+
+    sampling_from_model : bool
+        Whether model-based initial sampling is used when data-based sampling
+        does not provide the requested number of initial points.
+
+    optimizer_type : OptimizerType
+        Optimizer type used for model-based initial candidate generation.
+
+        Supported branches in the implementation are:
+
+        * ``OptimizerType.EBM``;
+        * ``OptimizerType.LinearAdditive``;
+        * ``OptimizerType.Custom``.
+
+    optimizer : ModelBasedCounterOptimizer or None
+        Custom optimizer used when ``optimizer_type`` is
+        ``OptimizerType.Custom``.
 
     Returns
     -------
-    np.ndarray:
-        The generated counterfactuals that minimize the loss function.
+    numpy.ndarray of shape (num_cfs, n_features)
+        Generated counterfactual instances, vertically stacked in generation
+        order.
+
+    Raises
+    ------
+    ValueError
+        If ``X`` is ``None``.
+
+    ValueError
+        If a model-based optimizer returns a candidate in a format other than
+        ``dict``, ``numpy.ndarray``, or ``list``.
+
+    NotImplementedError
+        If ``optimizer_type`` is not handled by the optimizer-selection
+        implementation.
+
+    Notes
+    -----
+    Each counterfactual uses a separate in-memory Optuna study configured with
+    ``direction="maximize"``.
+
+    The Optuna objective returns ``-loss[0, 1]`` from the array produced by
+    ``compute_loss``. This scalar is maximized by the study.
+
+    Each candidate contains one value for every feature in
+    ``features_order``. Values for features outside ``masked_features`` are
+    replaced by their corresponding values from ``query_instance``.
+
+    Exact duplicate initial candidates are not enqueued more than once within
+    one counterfactual-generation run. Initial candidate values must also lie
+    within the supplied bounds.
+
+    No random seed is set internally. Data sampling, random selection of
+    feature subsets, and optimization may therefore produce different results
+    across calls.
+
+    The function does not independently verify that the returned instances
+    are predicted as ``desired_class``. It returns the parameters from the
+    best Optuna trial according to the supplied loss function.
     """
     cfs = []
     for _ in range(num_cfs):
